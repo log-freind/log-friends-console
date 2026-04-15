@@ -7,4 +7,3 @@ build/
 *.iml
 out/
 .DS_Store
-.env
