@@ -6,6 +6,20 @@ plugins {
     id("io.spring.dependency-management") version "1.1.6"
 }
 
+fun loadDotenv(): Map<String, String> {
+    val envFile = rootProject.file(".env")
+    if (!envFile.exists()) return emptyMap()
+
+    return envFile.readLines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && "=" in it }
+        .associate { line ->
+            val key = line.substringBefore("=").trim()
+            val value = line.substringAfter("=").trim().trim('"', '\'')
+            key to value
+        }
+}
+
 kotlin {
     jvmToolchain(21)
 }
@@ -42,6 +56,14 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    loadDotenv().forEach { (key, value) ->
+        if (System.getenv(key).isNullOrBlank()) {
+            environment(key, value)
+        }
+    }
 }
 
 springBoot {

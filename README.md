@@ -1,6 +1,6 @@
 # log-friends-console
 
-Spring Boot control plane and ingest server for Log Friends. It receives SDK event batches over HTTP, stores raw events in TimescaleDB tables, and manages agents, log specs, alert rules, incidents, and event statistics.
+Spring Boot control plane and ingest server for Log Friends. It receives SDK event batches over HTTP, stores raw events in TimescaleDB tables, and manages agents, log specs, raw event queries, and event statistics.
 
 ## Current Architecture
 
@@ -19,17 +19,17 @@ Kafka and Protobuf transport are excluded from the current ingest path.
 - **Raw event storage**: store events in type-specific TimescaleDB hypertables
 - **Partial failure handling**: store malformed events separately without failing the whole batch
 - **Derived stats**: generate dashboard/stat data with an internal scheduler
-- **Metadata APIs**: manage agents, log specs, alert rules, incidents, and event stats
+- **Metadata APIs**: manage agents, log specs, raw event queries, and event stats
 
 ## Raw Event Tables
 
 | Event type | Table |
 |------------|-------|
-| `LOG` | `log_events` |
+| `LOG` | `logs` |
 | `HTTP` | `http_events` |
 | `JDBC` | `jdbc_events` |
-| `METHOD_TRACE` | `method_trace_events` |
-| `LOG_EVENT` | `custom_events` |
+| `METHOD_TRACE` | `method_traces` |
+| `LOG_EVENT` | `custom_events` (`payload` JSONB) |
 
 Invalid ingest events are stored in `ingest_failed_events`. Failure statistics are stored separately in `ingest_failure_stats`.
 
@@ -65,8 +65,6 @@ The first implementation keeps stats generation inside `log-friends-console`:
 | Agents | `/api/agents` |
 | Log specs | `/api/log-specs` |
 | Event stats | `/api/event-stats` |
-| Alert rules | `/api/alert-rules` |
-| Incidents | `/api/incidents` |
 
 ## Run
 
