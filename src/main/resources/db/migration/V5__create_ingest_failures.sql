@@ -23,6 +23,7 @@ CREATE TABLE ingest_failure_stats (
 );
 
 CREATE INDEX idx_ingest_failed_events_worker_failed_at ON ingest_failed_events(worker_id, failed_at DESC);
+CREATE INDEX idx_ingest_failed_events_event_type_failed_at ON ingest_failed_events(event_type, failed_at DESC);
 CREATE INDEX idx_ingest_failed_events_reason_code ON ingest_failed_events(reason_code);
 CREATE INDEX idx_ingest_failure_stats_worker_window ON ingest_failure_stats(worker_id, window_start DESC);
 CREATE INDEX idx_ingest_failure_stats_reason_code ON ingest_failure_stats(reason_code);
