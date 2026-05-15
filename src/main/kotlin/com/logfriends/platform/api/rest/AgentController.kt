@@ -30,12 +30,10 @@ class AgentController(
         val agent = agentService.register(
             workerId = request.workerId,
             appName = request.appName,
-            metadata = request.metadata
-        )
-        agent.updateInfo(
             sdkVersion = request.sdkVersion,
             javaVersion = request.javaVersion,
-            hostname = request.hostname
+            hostname = request.hostname,
+            metadata = request.metadata
         )
         return ResponseEntity.status(HttpStatus.CREATED).body(AgentResponse.from(agent))
     }
