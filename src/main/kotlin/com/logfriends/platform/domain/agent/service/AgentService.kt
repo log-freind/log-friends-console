@@ -29,7 +29,14 @@ class AgentService(
             .orElseThrow { BusinessException(ErrorCode.AGENT_NOT_FOUND) }
 
     @Transactional
-    fun register(workerId: String, appName: String, metadata: Map<String, Any> = emptyMap()): Agent {
+    fun register(
+        workerId: String,
+        appName: String,
+        sdkVersion: String? = null,
+        javaVersion: String? = null,
+        hostname: String? = null,
+        metadata: Map<String, Any> = emptyMap()
+    ): Agent {
         if (agentRepository.existsByWorkerId(workerId)) {
             throw BusinessException(ErrorCode.AGENT_ALREADY_REGISTERED)
         }
@@ -41,16 +48,18 @@ class AgentService(
             status = AgentStatus.RUNNING,
             lastHeartbeat = Instant.now()
         )
+        agent.updateInfo(
+            sdkVersion = sdkVersion,
+            javaVersion = javaVersion,
+            hostname = hostname
+        )
         return agentRepository.save(agent)
     }
 
     @Transactional
     fun heartbeat(workerId: String, metadata: Map<String, Any>? = null): Agent {
         val agent = agentRepository.findByWorkerId(workerId)
-            .orElseGet {
-                // 등록 안 된 에이전트가 heartbeat 보내면 자동 등록
-                Agent(workerId = workerId, appName = "unknown")
-            }
+            .orElseThrow { BusinessException(ErrorCode.AGENT_NOT_FOUND) }
 
         agent.heartbeat()
         metadata?.let { agent.updateInfo(metadata = it) }
