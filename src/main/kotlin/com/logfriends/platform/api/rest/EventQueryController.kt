@@ -15,40 +15,36 @@ class EventQueryController(
     fun queryHttp(
         @RequestParam(required = false) workerId: String?,
         @RequestParam from: Instant,
-        @RequestParam to: Instant,
-        @RequestParam(defaultValue = "100") limit: Int
+        @RequestParam to: Instant
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryHttpEvents(workerId, from, to, limit))
+        ResponseEntity.ok(eventQueryService.queryHttpEvents(workerId, from, to))
 
     @GetMapping("/log")
     fun queryLog(
         @RequestParam(required = false) workerId: String?,
         @RequestParam(required = false) level: String?,
         @RequestParam from: Instant,
-        @RequestParam to: Instant,
-        @RequestParam(defaultValue = "100") limit: Int
+        @RequestParam to: Instant
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryLogEvents(workerId, level, from, to, limit))
+        ResponseEntity.ok(eventQueryService.queryLogEvents(workerId, level, from, to))
 
     @GetMapping("/jdbc")
     fun queryJdbc(
         @RequestParam(required = false) workerId: String?,
         @RequestParam from: Instant,
         @RequestParam to: Instant,
-        @RequestParam(required = false) minDurationMs: Long?,
-        @RequestParam(defaultValue = "100") limit: Int
+        @RequestParam(required = false) minDurationMs: Long?
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryJdbcEvents(workerId, from, to, minDurationMs, limit))
+        ResponseEntity.ok(eventQueryService.queryJdbcEvents(workerId, from, to, minDurationMs))
 
     @GetMapping("/custom")
     fun queryCustom(
         @RequestParam(required = false) workerId: String?,
         @RequestParam(required = false) eventName: String?,
         @RequestParam from: Instant,
-        @RequestParam to: Instant,
-        @RequestParam(defaultValue = "100") limit: Int
+        @RequestParam to: Instant
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryCustomEvents(workerId, eventName, from, to, limit))
+        ResponseEntity.ok(eventQueryService.queryCustomEvents(workerId, eventName, from, to))
 
     @GetMapping("/method-trace")
     fun queryMethodTrace(
@@ -56,8 +52,7 @@ class EventQueryController(
         @RequestParam(required = false) className: String?,
         @RequestParam from: Instant,
         @RequestParam to: Instant,
-        @RequestParam(required = false) minDurationMs: Long?,
-        @RequestParam(defaultValue = "100") limit: Int
+        @RequestParam(required = false) minDurationMs: Long?
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryMethodTraceEvents(workerId, className, from, to, minDurationMs, limit))
+        ResponseEntity.ok(eventQueryService.queryMethodTraceEvents(workerId, className, from, to, minDurationMs))
 }
