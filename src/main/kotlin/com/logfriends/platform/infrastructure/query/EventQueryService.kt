@@ -18,8 +18,7 @@ class EventQueryService(
     fun queryHttpEvents(
         workerId: String?,
         from: Instant,
-        to: Instant,
-        limit: Int = 100
+        to: Instant
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("ts").between(from, to)
@@ -29,8 +28,7 @@ class EventQueryService(
         return dsl.select()
             .from(DSL.table("http_events"))
             .where(conditions)
-            .orderBy(DSL.field("ts").desc())
-            .limit(limit)
+            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
 
@@ -39,8 +37,7 @@ class EventQueryService(
         workerId: String?,
         level: String?,
         from: Instant,
-        to: Instant,
-        limit: Int = 100
+        to: Instant
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("ts").between(from, to)
@@ -51,8 +48,7 @@ class EventQueryService(
         return dsl.select()
             .from(DSL.table("logs"))
             .where(conditions)
-            .orderBy(DSL.field("ts").desc())
-            .limit(limit)
+            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
 
@@ -61,8 +57,7 @@ class EventQueryService(
         workerId: String?,
         from: Instant,
         to: Instant,
-        minDurationMs: Long? = null,
-        limit: Int = 100
+        minDurationMs: Long? = null
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("ts").between(from, to)
@@ -73,8 +68,7 @@ class EventQueryService(
         return dsl.select()
             .from(DSL.table("jdbc_events"))
             .where(conditions)
-            .orderBy(DSL.field("duration_ms").desc())
-            .limit(limit)
+            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
 
@@ -83,8 +77,7 @@ class EventQueryService(
         workerId: String?,
         eventName: String?,
         from: Instant,
-        to: Instant,
-        limit: Int = 100
+        to: Instant
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("ts").between(from, to)
@@ -95,8 +88,7 @@ class EventQueryService(
         return dsl.select()
             .from(DSL.table("custom_events"))
             .where(conditions)
-            .orderBy(DSL.field("ts").desc())
-            .limit(limit)
+            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
 
@@ -106,8 +98,7 @@ class EventQueryService(
         className: String?,
         from: Instant,
         to: Instant,
-        minDurationMs: Long? = null,
-        limit: Int = 100
+        minDurationMs: Long? = null
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("ts").between(from, to)
@@ -119,8 +110,7 @@ class EventQueryService(
         return dsl.select()
             .from(DSL.table("method_traces"))
             .where(conditions)
-            .orderBy(DSL.field("duration_ms").desc())
-            .limit(limit)
+            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
 }
