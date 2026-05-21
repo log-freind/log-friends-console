@@ -11,7 +11,7 @@ log-friends-sdk
   -> TimescaleDB
 ```
 
-Kafka and Protobuf transport are excluded from the current ingest path.
+The current ingest path receives HTTP JSON batches and stores them through the Console.
 
 ## Responsibilities
 
@@ -71,7 +71,7 @@ The first implementation keeps stats generation inside `log-friends-console`:
 ### Docker
 
 ```bash
-cd /Users/choeseonghyeon/Desktop/log-friends
+cd path/to/log-friends
 docker compose -f docker-compose.infra.yml up -d
 docker compose -f docker-compose.platform.yml up -d --build
 ```
@@ -85,7 +85,7 @@ http://localhost:8082
 ### Local
 
 ```bash
-cd /Users/choeseonghyeon/Desktop/log-friends/log-friends-console
+cd path/to/log-friends/log-friends-console
 ./gradlew bootRun
 ```
 
