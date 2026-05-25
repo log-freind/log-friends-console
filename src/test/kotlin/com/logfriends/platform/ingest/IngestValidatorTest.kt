@@ -68,10 +68,20 @@ class IngestValidatorTest {
     }
 
     @Test
-    fun `returns null when LOG_EVENT has eventName`() {
+    fun `returns INVALID_EVENT_NAME when LOG_EVENT eventName is not camelCase`() {
         val result = validator.validate(
             workerId = "worker-1",
             event = event(type = "LOG_EVENT", eventName = "order.created")
+        )
+
+        assertThat(result).isEqualTo(IngestFailureReason.INVALID_EVENT_NAME)
+    }
+
+    @Test
+    fun `returns null when LOG_EVENT has camelCase eventName`() {
+        val result = validator.validate(
+            workerId = "worker-1",
+            event = event(type = "LOG_EVENT", eventName = "orderCreated")
         )
 
         assertThat(result).isNull()

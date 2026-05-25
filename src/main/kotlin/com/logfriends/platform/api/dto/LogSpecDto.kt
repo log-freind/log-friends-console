@@ -13,11 +13,23 @@ data class LogSpecUpsertRequest(
 data class LogSpecItemRequest(
     val name: String,
     val description: String = "",
+    val apiMethod: String? = null,
+    val apiPath: String? = null,
+    val apiDescription: String? = null,
     val levels: List<String> = emptyList(),
     val category: String = "BUSINESS",
     val fields: List<Map<String, Any>> = emptyList()
 ) {
-    fun toServiceRequest() = LogSpecRequest(name, description, levels, category, fields)
+    fun toServiceRequest() = LogSpecRequest(
+        name = name,
+        description = description,
+        apiMethod = apiMethod?.trim()?.takeIf { it.isNotBlank() },
+        apiPath = apiPath?.trim()?.takeIf { it.isNotBlank() },
+        apiDescription = apiDescription?.trim()?.takeIf { it.isNotBlank() },
+        levels = levels,
+        category = category,
+        fields = fields
+    )
 }
 
 // === Response ===
@@ -27,6 +39,9 @@ data class LogSpecResponse(
     val agentId: Long,
     val specName: String,
     val description: String,
+    val apiMethod: String?,
+    val apiPath: String?,
+    val apiDescription: String?,
     val levels: List<String>,
     val category: String,
     val fields: List<Map<String, Any>>,
@@ -39,6 +54,9 @@ data class LogSpecResponse(
             agentId = s.agentId,
             specName = s.specName,
             description = s.description,
+            apiMethod = s.apiMethod,
+            apiPath = s.apiPath,
+            apiDescription = s.apiDescription,
             levels = s.levels,
             category = s.category,
             fields = s.fields,

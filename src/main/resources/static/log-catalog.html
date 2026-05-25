@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log Catalog</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="stylesheet" href="/log-catalog.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>Log Catalog</h1>
+        <p id="summary">앱별 LogSpec, Recent Sample, mismatch, Field Request</p>
+      </div>
+      <button id="refreshButton" type="button">Refresh</button>
+    </header>
+
+    <section class="toolbar" aria-label="catalog filters">
+      <label>
+        App
+        <select id="appSelect"></select>
+      </label>
+      <label>
+        Worker
+        <select id="workerSelect"></select>
+      </label>
+      <label>
+        Samples
+        <select id="sampleSizeSelect">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+        </select>
+      </label>
+      <label class="search">
+        Search
+        <input id="eventSearchInput" type="search" placeholder="eventName">
+      </label>
+    </section>
+
+    <p id="message" class="message" role="status"></p>
+    <section id="stats" class="stats" aria-label="catalog stats"></section>
+    <section id="events" class="events" aria-live="polite"></section>
+  </main>
+
+  <template id="eventTemplate">
+    <article class="event-card">
+      <header class="event-head">
+        <div>
+          <h2></h2>
+          <div class="api-context"></div>
+          <p class="description"></p>
+        </div>
+        <div class="badges"></div>
+      </header>
+
+      <section>
+        <h3>Spec</h3>
+        <div class="fields"></div>
+      </section>
+
+      <section>
+        <h3>Recent Sample</h3>
+        <div class="samples"></div>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h3>Field Requests</h3>
+          <button class="toggle-request-form" type="button">New Request</button>
+        </div>
+        <form class="request-form hidden">
+          <input name="requestedFieldName" placeholder="requestedFieldName" required>
+          <select name="requestedType">
+            <option>STRING</option>
+            <option>INT</option>
+            <option>LONG</option>
+            <option>DOUBLE</option>
+            <option>BOOLEAN</option>
+            <option>DATETIME</option>
+            <option>JSON</option>
+          </select>
+          <input name="reason" placeholder="reason" required>
+          <input name="requestedBy" placeholder="requestedBy">
+          <button type="submit">Create</button>
+        </form>
+        <div class="requests"></div>
+      </section>
+    </article>
+  </template>
+
+  <script src="/log-catalog.js"></script>
+</body>
+</html>

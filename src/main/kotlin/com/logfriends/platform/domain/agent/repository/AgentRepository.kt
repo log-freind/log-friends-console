@@ -18,5 +18,7 @@ interface AgentRepository : JpaRepository<Agent, Long> {
     @Query("SELECT a FROM Agent a WHERE a.lastHeartbeat < :threshold AND a.status = 'RUNNING'")
     fun findStaleAgents(threshold: Instant): List<Agent>
 
+    fun findByAppName(appName: String): List<Agent>
+
     fun findByAppNameContainingIgnoreCase(appName: String): List<Agent>
 }

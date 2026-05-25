@@ -7,5 +7,6 @@ enum class IngestFailureReason(val message: String) {
     MISSING_TIMESTAMP("timestamp is blank"),
     INVALID_TIMESTAMP("timestamp is not ISO-8601 instant"),
     MISSING_EVENT_NAME("LOG_EVENT eventName is blank"),
+    INVALID_EVENT_NAME("LOG_EVENT eventName must be camelCase"),
     STORE_FAILED("raw event store failed")
 }

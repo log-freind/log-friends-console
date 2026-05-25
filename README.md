@@ -33,6 +33,8 @@ The current ingest path receives HTTP JSON batches and stores them through the C
 
 Invalid ingest events are stored in `ingest_failed_events`. Failure statistics are stored separately in `ingest_failure_stats`.
 
+`LOG_EVENT.eventName` follows the SDK contract: it is required and must be camelCase matching `^[a-z][a-zA-Z0-9]*$`.
+
 ## Ingest Response
 
 `POST /ingest` returns counts only. It does not return failed payload details.

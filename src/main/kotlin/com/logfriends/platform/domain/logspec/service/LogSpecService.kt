@@ -40,13 +40,24 @@ class LogSpecService(
         specs.forEach { req ->
             val existing = logSpecSnapshotRepository.findByAgentIdAndSpecName(agentId, req.name)
             if (existing != null) {
-                existing.update(req.description, req.levels, req.category, req.fields)
+                existing.update(
+                    description = req.description,
+                    apiMethod = req.apiMethod,
+                    apiPath = req.apiPath,
+                    apiDescription = req.apiDescription,
+                    levels = req.levels,
+                    category = req.category,
+                    fields = req.fields
+                )
             } else {
                 logSpecSnapshotRepository.save(
                     LogSpecSnapshot(
                         agentId = agentId,
                         specName = req.name,
                         description = req.description,
+                        apiMethod = req.apiMethod,
+                        apiPath = req.apiPath,
+                        apiDescription = req.apiDescription,
                         levels = req.levels,
                         category = req.category,
                         fields = req.fields
@@ -65,6 +76,9 @@ class LogSpecService(
 data class LogSpecRequest(
     val name: String,
     val description: String = "",
+    val apiMethod: String? = null,
+    val apiPath: String? = null,
+    val apiDescription: String? = null,
     val levels: List<String> = emptyList(),
     val category: String = "BUSINESS",
     val fields: List<Map<String, Any>> = emptyList()

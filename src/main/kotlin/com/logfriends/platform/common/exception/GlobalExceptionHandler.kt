@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.time.Instant
 
 @RestControllerAdvice
@@ -33,6 +34,13 @@ class GlobalExceptionHandler {
         return ResponseEntity
             .badRequest()
             .body(ErrorResponse("VALIDATION_ERROR", message))
+    }
+
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun handleNoResourceFoundException(e: NoResourceFoundException): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .status(404)
+            .body(ErrorResponse("NOT_FOUND", "resource not found"))
     }
 
     @ExceptionHandler(Exception::class)
