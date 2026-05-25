@@ -81,7 +81,7 @@ cd log-friends-console
 Console runs on:
 
 ```text
-http://localhost:8082
+http://localhost:8080
 ```
 
 ## Configuration
