@@ -26,6 +26,15 @@ class LogSpecSnapshot(
     @Column(nullable = false)
     var description: String = "",
 
+    @Column(name = "api_method")
+    var apiMethod: String? = null,
+
+    @Column(name = "api_path")
+    var apiPath: String? = null,
+
+    @Column(name = "api_description")
+    var apiDescription: String? = null,
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb", nullable = false)
     var levels: List<String> = emptyList(),
@@ -44,11 +53,17 @@ class LogSpecSnapshot(
 
     fun update(
         description: String,
+        apiMethod: String?,
+        apiPath: String?,
+        apiDescription: String?,
         levels: List<String>,
         category: String,
         fields: List<Map<String, Any>>
     ) {
         this.description = description
+        this.apiMethod = apiMethod
+        this.apiPath = apiPath
+        this.apiDescription = apiDescription
         this.levels = levels
         this.category = category
         this.fields = fields

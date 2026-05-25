@@ -2,8 +2,8 @@ plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.spring") version "2.3.20"
     kotlin("plugin.jpa") version "2.3.20"
-    id("org.springframework.boot") version "3.4.0"
-    id("io.spring.dependency-management") version "1.1.6"
+    id("org.springframework.boot") version "3.5.9"
+    id("io.spring.dependency-management") version "1.1.7"
 }
 
 fun loadDotenv(): Map<String, String> {
@@ -51,7 +51,7 @@ dependencies {
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.junit.platform:junit-platform-launcher:1.10.1")
+    testImplementation("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.test {
@@ -67,5 +67,5 @@ tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
 }
 
 springBoot {
-    mainClass.set("com.logfriends.platform.PlatformApplicationKt")
+    mainClass.set("com.logfriends.platform.ConsoleApplication")
 }

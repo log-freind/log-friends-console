@@ -33,6 +33,8 @@ The current ingest path receives HTTP JSON batches and stores them through the C
 
 Invalid ingest events are stored in `ingest_failed_events`. Failure statistics are stored separately in `ingest_failure_stats`.
 
+`LOG_EVENT.eventName` follows the SDK contract: it is required and must be camelCase matching `^[a-z][a-zA-Z0-9]*$`.
+
 ## Ingest Response
 
 `POST /ingest` returns counts only. It does not return failed payload details.
@@ -68,25 +70,18 @@ The first implementation keeps stats generation inside `log-friends-console`:
 
 ## Run
 
-### Docker
+Start PostgreSQL/TimescaleDB first, then run the Console locally:
 
 ```bash
-cd path/to/log-friends
-docker compose -f docker-compose.infra.yml up -d
-docker compose -f docker-compose.platform.yml up -d --build
+git clone https://github.com/log-freind/log-friends-console.git
+cd log-friends-console
+./gradlew bootRun
 ```
 
 Console runs on:
 
 ```text
 http://localhost:8082
-```
-
-### Local
-
-```bash
-cd path/to/log-friends/log-friends-console
-./gradlew bootRun
 ```
 
 ## Configuration
