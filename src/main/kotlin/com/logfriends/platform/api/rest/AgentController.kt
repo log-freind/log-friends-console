@@ -2,6 +2,7 @@ package com.logfriends.platform.api.rest
 
 import com.logfriends.platform.api.dto.*
 import com.logfriends.platform.domain.agent.service.AgentService
+import com.logfriends.platform.domain.logspec.service.LogSpecService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -10,7 +11,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/agents")
 class AgentController(
-    private val agentService: AgentService
+    private val agentService: AgentService,
+    private val logSpecService: LogSpecService
 ) {
 
     @GetMapping
@@ -26,7 +28,7 @@ class AgentController(
     }
 
     @PostMapping
-    fun registerAgent(@Valid @RequestBody request: AgentRegisterRequest): ResponseEntity<AgentResponse> {
+    fun registerAgent(@Valid @RequestBody request: AgentRegisterRequest): ResponseEntity<AgentRegistrationResponse> {
         val agent = agentService.register(
             workerId = request.workerId,
             appName = request.appName,
@@ -35,7 +37,10 @@ class AgentController(
             hostname = request.hostname,
             metadata = request.metadata
         )
-        return ResponseEntity.status(HttpStatus.CREATED).body(AgentResponse.from(agent))
+        val knownLogSpecs = logSpecService.findAllByAppName(agent.appName)
+        return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(AgentRegistrationResponse.from(agent, knownLogSpecs))
     }
 
     @PatchMapping("/{id}")
