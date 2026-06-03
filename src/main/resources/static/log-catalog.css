@@ -171,7 +171,8 @@ input {
 
 .badges,
 .fields,
-.requests {
+.requests,
+.hint-fields {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -190,6 +191,27 @@ input {
 .field-row {
   display: grid;
   gap: 4px;
+}
+
+.hint-card {
+  border: 1px solid #d9e0e8;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.hints {
+  display: grid;
+  gap: 10px;
+}
+
+.hint-nested {
+  border-left: 2px solid #d9e0e8;
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+  padding-left: 10px;
 }
 
 .badge.warn {

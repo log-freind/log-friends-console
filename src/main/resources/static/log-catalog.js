@@ -106,11 +106,53 @@ function renderEvents() {
     node.querySelector(".description").textContent = event.description || "";
     renderBadges(node.querySelector(".badges"), event);
     renderFields(node.querySelector(".fields"), event.fields || []);
+    renderHints(node.querySelector(".hints"), event.discoveredHints || []);
     renderSamples(node.querySelector(".samples"), event.samples || []);
     renderRequests(node.querySelector(".requests"), event);
     bindRequestForm(node.querySelector(".request-form"), node.querySelector(".toggle-request-form"), event);
     els.events.appendChild(node);
   }
+}
+
+function renderHints(container, hints) {
+  if (hints.length === 0) {
+    container.innerHTML = `<span class="field">No annotation hint</span>`;
+    return;
+  }
+
+  container.innerHTML = hints.map((hint) => {
+    const specHint = hint.specHint || {};
+    const source = `${hint.sourceClass}.${hint.sourceMethod}`;
+    const api = [specHint.apiMethod, specHint.apiPath].filter(Boolean).join(" ");
+    const fields = Array.isArray(specHint.fields) ? specHint.fields : [];
+    return `
+      <div class="hint-card">
+        <p class="api-endpoint">${escapeHtml(source)}</p>
+        ${hint.appVersion ? `<p class="description">appVersion ${escapeHtml(hint.appVersion)}</p>` : ""}
+        ${api ? `<p class="api-endpoint">${escapeHtml(api)}</p>` : ""}
+        ${specHint.apiDescription ? `<p class="api-description">${escapeHtml(specHint.apiDescription)}</p>` : ""}
+        ${specHint.description ? `<p class="description">${escapeHtml(specHint.description)}</p>` : ""}
+        <div class="hint-fields">${renderHintFields(fields)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderHintFields(fields) {
+  if (fields.length === 0) return `<span class="field">No field hint</span>`;
+  return fields.map((field) => {
+    const required = field.required === false ? "optional" : "required";
+    const nested = Array.isArray(field.nestedFields) && field.nestedFields.length > 0
+      ? `<div class="hint-nested">${renderHintFields(field.nestedFields)}</div>`
+      : "";
+    return `
+      <div class="field-row">
+        <span class="field">${escapeHtml(field.name)} · ${escapeHtml(field.type || "STRING")} · ${required}</span>
+        ${field.description ? `<p class="field-description">${escapeHtml(field.description)}</p>` : ""}
+        ${nested}
+      </div>
+    `;
+  }).join("");
 }
 
 function renderStats() {

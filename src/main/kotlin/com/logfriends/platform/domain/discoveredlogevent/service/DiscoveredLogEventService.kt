@@ -60,6 +60,7 @@ class DiscoveredLogEventService(
             .map {
                 it.refresh(
                     parameterNames = event.parameterNames,
+                    specHint = event.specHint,
                     appVersion = appVersion,
                     observedAt = observedAt
                 )
@@ -72,6 +73,7 @@ class DiscoveredLogEventService(
                     sourceClass = event.sourceClass,
                     sourceMethod = event.sourceMethod,
                     parameterNames = event.parameterNames,
+                    specHint = event.specHint,
                     appVersion = appVersion,
                     firstSeenAt = observedAt,
                     lastSeenAt = observedAt

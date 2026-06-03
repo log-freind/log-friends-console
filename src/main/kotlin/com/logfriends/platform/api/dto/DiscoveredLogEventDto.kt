@@ -20,7 +20,8 @@ data class DiscoveredLogEventItemRequest(
     val eventName: String,
     val sourceClass: String,
     val sourceMethod: String,
-    val parameterNames: List<String> = emptyList()
+    val parameterNames: List<String> = emptyList(),
+    val specHint: Map<String, Any?>? = null
 )
 
 data class DiscoveredLogEventReportResponse(
@@ -35,6 +36,7 @@ data class DiscoveredLogEventResponse(
     val sourceClass: String,
     val sourceMethod: String,
     val parameterNames: List<String>,
+    val specHint: Map<String, Any?>?,
     val appVersion: String?,
     val status: DiscoveredLogEventStatus,
     val firstSeenAt: Instant,
@@ -50,6 +52,7 @@ data class DiscoveredLogEventResponse(
             sourceClass = discoveredLogEvent.sourceClass,
             sourceMethod = discoveredLogEvent.sourceMethod,
             parameterNames = discoveredLogEvent.parameterNames,
+            specHint = discoveredLogEvent.specHint,
             appVersion = discoveredLogEvent.appVersion,
             status = discoveredLogEvent.status,
             firstSeenAt = discoveredLogEvent.firstSeenAt,

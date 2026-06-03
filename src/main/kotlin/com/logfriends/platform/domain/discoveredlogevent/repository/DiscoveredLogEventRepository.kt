@@ -14,4 +14,6 @@ interface DiscoveredLogEventRepository : JpaRepository<DiscoveredLogEvent, Long>
     ): Optional<DiscoveredLogEvent>
 
     fun findAllByAgentIdOrderByEventNameAscSourceClassAscSourceMethodAsc(agentId: Long): List<DiscoveredLogEvent>
+
+    fun findAllByAgentIdInOrderByEventNameAscSourceClassAscSourceMethodAsc(agentIds: Collection<Long>): List<DiscoveredLogEvent>
 }
