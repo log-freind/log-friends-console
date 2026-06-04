@@ -54,7 +54,16 @@ class DiscoveredLogEventServiceTest {
                         eventName = "orderCreated",
                         sourceClass = "com.example.OrderService",
                         sourceMethod = "createOrder",
-                        parameterNames = listOf("request")
+                        parameterNames = listOf("request"),
+                        specHint = mapOf(
+                            "description" to "Order creation business eventName",
+                            "fields" to listOf(
+                                mapOf(
+                                    "name" to "request",
+                                    "description" to "OrderRequest DTO object"
+                                )
+                            )
+                        )
                     )
                 )
             )
@@ -74,6 +83,7 @@ class DiscoveredLogEventServiceTest {
             sourceClass = "com.example.OrderService",
             sourceMethod = "createOrder",
             parameterNames = listOf("oldRequest"),
+            specHint = mapOf("description" to "old description"),
             status = DiscoveredLogEventStatus.IGNORED
         )
         given(agentRepository.findById(1L)).willReturn(Optional.of(agent))
@@ -98,13 +108,15 @@ class DiscoveredLogEventServiceTest {
                         eventName = "orderCreated",
                         sourceClass = "com.example.OrderService",
                         sourceMethod = "createOrder",
-                        parameterNames = listOf("request")
+                        parameterNames = listOf("request"),
+                        specHint = mapOf("description" to "new description")
                     )
                 )
             )
         )
 
         assertThat(existing.parameterNames).containsExactly("request")
+        assertThat(existing.specHint).containsEntry("description", "new description")
         assertThat(existing.appVersion).isEqualTo("0.1.1")
         assertThat(existing.status).isEqualTo(DiscoveredLogEventStatus.IGNORED)
     }

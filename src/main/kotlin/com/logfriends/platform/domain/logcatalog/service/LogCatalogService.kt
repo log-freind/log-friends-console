@@ -7,6 +7,8 @@ import com.logfriends.platform.common.exception.BusinessException
 import com.logfriends.platform.common.exception.ErrorCode
 import com.logfriends.platform.domain.agent.entity.Agent
 import com.logfriends.platform.domain.agent.repository.AgentRepository
+import com.logfriends.platform.domain.discoveredlogevent.entity.DiscoveredLogEvent
+import com.logfriends.platform.domain.discoveredlogevent.repository.DiscoveredLogEventRepository
 import com.logfriends.platform.domain.fieldrequest.entity.FieldRequestStatus
 import com.logfriends.platform.domain.fieldrequest.entity.FieldType
 import com.logfriends.platform.domain.fieldrequest.repository.FieldRequestRepository
@@ -22,6 +24,7 @@ import java.time.Instant
 class LogCatalogService(
     private val agentRepository: AgentRepository,
     private val logSpecSnapshotRepository: LogSpecSnapshotRepository,
+    private val discoveredLogEventRepository: DiscoveredLogEventRepository,
     private val fieldRequestRepository: FieldRequestRepository,
     private val dsl: DSLContext,
     private val objectMapper: ObjectMapper
@@ -52,12 +55,16 @@ class LogCatalogService(
         }
 
         val targetWorkerIds = selectedWorkerId?.let { listOf(it) } ?: workerIds
+        val targetAgents = selectedWorkerId
+            ?.let { worker -> agents.filter { it.workerId == worker } }
+            ?: agents
+        val discoveredHintsByEventName = fetchDiscoveredHints(targetAgents).groupBy { it.eventName }
         val specs = logSpecSnapshotRepository.findAllByAppName(appName)
             .groupBy { it.specName }
             .mapValues { (_, grouped) -> grouped.maxBy { it.updatedAt } }
         val samples = fetchSamples(targetWorkerIds, normalizeSampleSize(sampleSize))
         val samplesByEventName = samples.groupBy { it.eventName }
-        val eventNames = (specs.keys + samplesByEventName.keys).sorted()
+        val eventNames = (specs.keys + samplesByEventName.keys + discoveredHintsByEventName.keys).sorted()
         val requestsByEventName = if (eventNames.isEmpty()) {
             emptyMap()
         } else {
@@ -81,6 +88,7 @@ class LogCatalogService(
                     eventSamples.isEmpty() -> LogCatalogSpecStatus.NO_SAMPLE
                     else -> LogCatalogSpecStatus.REGISTERED
                 },
+                discoveredHints = discoveredHintsByEventName[eventName].orEmpty().map { it.toDiscoveredHintResponse() },
                 fields = fields,
                 samples = eventSamples.map {
                     LogCatalogSampleResponse(
@@ -111,6 +119,20 @@ class LogCatalogService(
         if (method == null && path == null && description == null) return null
         return LogCatalogApiContextResponse(method, path, description)
     }
+
+    private fun fetchDiscoveredHints(agents: List<Agent>): List<DiscoveredLogEvent> {
+        val agentIds = agents.mapNotNull { it.id }
+        if (agentIds.isEmpty()) return emptyList()
+        return discoveredLogEventRepository.findAllByAgentIdInOrderByEventNameAscSourceClassAscSourceMethodAsc(agentIds)
+    }
+
+    private fun DiscoveredLogEvent.toDiscoveredHintResponse(): LogCatalogDiscoveredHintResponse =
+        LogCatalogDiscoveredHintResponse(
+            sourceClass = sourceClass,
+            sourceMethod = sourceMethod,
+            appVersion = appVersion,
+            specHint = specHint
+        )
 
     private fun agentsForApp(appName: String): List<Agent> {
         val normalized = appName.trim()

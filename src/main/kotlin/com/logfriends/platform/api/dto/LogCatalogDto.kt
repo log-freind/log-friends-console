@@ -37,10 +37,18 @@ data class LogCatalogEventResponse(
     val description: String?,
     val apiContext: LogCatalogApiContextResponse?,
     val specStatus: LogCatalogSpecStatus,
+    val discoveredHints: List<LogCatalogDiscoveredHintResponse>,
     val fields: List<LogCatalogFieldResponse>,
     val samples: List<LogCatalogSampleResponse>,
     val mismatches: List<LogCatalogMismatchResponse>,
     val fieldRequests: List<FieldRequestResponse>
+)
+
+data class LogCatalogDiscoveredHintResponse(
+    val sourceClass: String,
+    val sourceMethod: String,
+    val appVersion: String?,
+    val specHint: Map<String, Any?>?
 )
 
 data class LogCatalogApiContextResponse(

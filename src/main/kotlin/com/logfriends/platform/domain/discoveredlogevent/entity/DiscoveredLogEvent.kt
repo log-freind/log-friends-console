@@ -49,6 +49,10 @@ class DiscoveredLogEvent(
     @Column(name = "parameter_names", columnDefinition = "jsonb", nullable = false)
     var parameterNames: List<String> = emptyList(),
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "spec_hint", columnDefinition = "jsonb")
+    var specHint: Map<String, Any?>? = null,
+
     @Column(name = "app_version")
     var appVersion: String? = null,
 
@@ -65,10 +69,12 @@ class DiscoveredLogEvent(
 
     fun refresh(
         parameterNames: List<String>,
+        specHint: Map<String, Any?>?,
         appVersion: String?,
         observedAt: Instant = Instant.now()
     ) {
         this.parameterNames = parameterNames
+        this.specHint = specHint
         this.appVersion = appVersion
         this.lastSeenAt = observedAt
     }
