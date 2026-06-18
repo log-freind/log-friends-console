@@ -6,7 +6,8 @@ const state = {
   events: [],
   eventTypeSummaries: [],
   failureSummaries: [],
-  search: ""
+  search: "",
+  selectedCatalogItemKey: ""
 };
 
 const els = {
@@ -91,27 +92,142 @@ function renderWorkerSelect(workerIds) {
 
 function renderEvents() {
   const query = state.search.trim().toLowerCase();
-  const events = state.events.filter((event) => event.eventName.toLowerCase().includes(query));
+  const items = buildCatalogItems(state.events)
+    .filter((item) => matchesCatalogSearch(item, query));
   els.events.innerHTML = "";
 
-  if (events.length === 0) {
-    els.events.innerHTML = `<p class="message">No catalog event.</p>`;
+  if (items.length === 0) {
+    els.events.innerHTML = `<p class="message">No API event.</p>`;
     return;
   }
 
-  for (const event of events) {
-    const node = els.template.content.cloneNode(true);
-    node.querySelector("h2").textContent = event.eventName;
-    renderApiContext(node.querySelector(".api-context"), event.apiContext);
-    node.querySelector(".description").textContent = event.description || "";
-    renderBadges(node.querySelector(".badges"), event);
-    renderFields(node.querySelector(".fields"), event.fields || []);
-    renderHints(node.querySelector(".hints"), event.discoveredHints || []);
-    renderSamples(node.querySelector(".samples"), event.samples || []);
-    renderRequests(node.querySelector(".requests"), event);
-    bindRequestForm(node.querySelector(".request-form"), node.querySelector(".toggle-request-form"), event);
-    els.events.appendChild(node);
+  if (!items.some((item) => item.key === state.selectedCatalogItemKey)) {
+    state.selectedCatalogItemKey = items[0].key;
   }
+
+  const layout = document.createElement("div");
+  layout.className = "catalog-layout";
+
+  const list = document.createElement("section");
+  list.className = "api-list";
+  list.setAttribute("aria-label", "API events");
+  list.innerHTML = items.map((item) => renderCatalogItemButton(item)).join("");
+
+  const detail = document.createElement("section");
+  detail.className = "api-detail";
+  detail.setAttribute("aria-live", "polite");
+
+  layout.appendChild(list);
+  layout.appendChild(detail);
+  els.events.appendChild(layout);
+
+  list.querySelectorAll("button[data-item-key]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedCatalogItemKey = button.dataset.itemKey;
+      renderEvents();
+    });
+  });
+
+  const selected = items.find((item) => item.key === state.selectedCatalogItemKey) || items[0];
+  renderCatalogDetail(detail, selected);
+}
+
+function buildCatalogItems(events) {
+  return events.flatMap((event) => {
+    const hints = Array.isArray(event.discoveredHints) ? event.discoveredHints : [];
+    if (hints.length === 0) {
+      return [createCatalogItem(event, null, 0)];
+    }
+    return hints.map((hint, index) => createCatalogItem(event, hint, index));
+  });
+}
+
+function createCatalogItem(event, hint, index) {
+  const specHint = hint?.specHint || {};
+  const apiMethod = specHint.apiMethod || event.apiContext?.method || "";
+  const apiPath = specHint.apiPath || event.apiContext?.path || "";
+  const api = [apiMethod, apiPath].filter(Boolean).join(" ");
+  const source = hint ? `${hint.sourceClass}.${hint.sourceMethod}` : "";
+  const title = api || event.eventName;
+  const subtitle = source || event.description || "No API hint";
+  const key = [
+    event.eventName,
+    apiMethod,
+    apiPath,
+    hint?.sourceClass,
+    hint?.sourceMethod,
+    hint?.appVersion,
+    index
+  ].filter(Boolean).join("::");
+
+  return { key, event, hint, title, subtitle };
+}
+
+function matchesCatalogSearch(item, query) {
+  if (!query) return true;
+  return [
+    item.event.eventName,
+    item.title,
+    item.subtitle,
+    item.event.specStatus
+  ].some((value) => String(value || "").toLowerCase().includes(query));
+}
+
+function renderCatalogItemButton(item) {
+  const selected = item.key === state.selectedCatalogItemKey ? "selected" : "";
+  const appVersion = item.hint?.appVersion ? `<span>${escapeHtml(item.hint.appVersion)}</span>` : "";
+  return `
+    <button class="api-item ${selected}" type="button" data-item-key="${escapeHtml(item.key)}">
+      <span class="api-item-title">${escapeHtml(item.title)}</span>
+      <span class="api-item-event">${escapeHtml(item.event.eventName)}</span>
+      <span class="api-item-source">${escapeHtml(item.subtitle)}</span>
+      <span class="api-item-meta">
+        <span>${escapeHtml(item.event.specStatus)}</span>
+        ${appVersion}
+      </span>
+    </button>
+  `;
+}
+
+function renderCatalogDetail(container, item) {
+  const event = item.event;
+  const node = els.template.content.cloneNode(true);
+  node.querySelector("h2").textContent = event.eventName;
+  renderApiContext(node.querySelector(".api-context"), apiContextForItem(item));
+  node.querySelector(".description").textContent = descriptionForItem(item);
+  renderBadges(node.querySelector(".badges"), event);
+  renderEventActions(node.querySelector(".event-actions"), event);
+  renderFields(node.querySelector(".fields"), event.fields || []);
+  renderHints(node.querySelector(".hints"), item.hint ? [item.hint] : event.discoveredHints || []);
+  renderSamples(node.querySelector(".samples"), event.samples || []);
+  renderRequests(node.querySelector(".requests"), event);
+  bindRequestForm(node.querySelector(".request-form"), node.querySelector(".toggle-request-form"), event);
+  container.replaceChildren(node);
+}
+
+function renderEventActions(container, event) {
+  const params = new URLSearchParams();
+  if (state.selectedApp) params.set("appName", state.selectedApp);
+  if (state.selectedWorker) params.set("workerId", state.selectedWorker);
+  params.set("eventType", "LOG_EVENT");
+  params.set("eventName", event.eventName);
+  container.innerHTML = `<a class="button-link" href="/raw-events?${params.toString()}">View Logs / CSV</a>`;
+}
+
+function apiContextForItem(item) {
+  const specHint = item.hint?.specHint || {};
+  if (specHint.apiMethod || specHint.apiPath || specHint.apiDescription) {
+    return {
+      method: specHint.apiMethod,
+      path: specHint.apiPath,
+      description: specHint.apiDescription
+    };
+  }
+  return item.event.apiContext;
+}
+
+function descriptionForItem(item) {
+  return item.hint?.specHint?.description || item.event.description || "";
 }
 
 function renderHints(container, hints) {

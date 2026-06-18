@@ -11,4 +11,7 @@ class StaticPageController {
 
     @GetMapping("/log-catalog")
     fun logCatalog(): String = "forward:/log-catalog.html"
+
+    @GetMapping("/raw-events")
+    fun rawEvents(): String = "forward:/raw-events.html"
 }

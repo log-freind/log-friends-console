@@ -74,22 +74,67 @@ class EventQueryService(
 
     /** @LogEvent 커스텀 이벤트 조회 */
     fun queryCustomEvents(
+        appName: String?,
+        workerId: String?,
+        eventName: String?,
+        from: Instant,
+        to: Instant,
+        limit: Int? = null
+    ): List<Map<String, Any?>> {
+        val conditions = mutableListOf(
+            DSL.field("c.ts").ge(from),
+            DSL.field("c.ts").lt(to)
+        )
+        appName?.let { conditions.add(DSL.field("a.app_name").eq(it)) }
+        workerId?.let { conditions.add(DSL.field("c.worker_id").eq(it)) }
+        eventName?.let { conditions.add(DSL.field("c.event_name").eq(it)) }
+
+        val query = dsl.select(
+            DSL.field("c.id").`as`("id"),
+            DSL.field("a.app_name").`as`("appName"),
+            DSL.field("c.worker_id").`as`("workerId"),
+            DSL.field("c.ts").`as`("timestamp"),
+            DSL.inline("LOG_EVENT").`as`("eventType"),
+            DSL.field("c.event_name").`as`("eventName"),
+            DSL.field("c.payload").`as`("payload")
+        )
+            .from(DSL.table("custom_events").`as`("c"))
+            .leftJoin(DSL.table("agents").`as`("a"))
+            .on(DSL.field("a.worker_id").eq(DSL.field("c.worker_id")))
+            .where(conditions)
+            .orderBy(DSL.field("c.ts").desc(), DSL.field("c.id").desc())
+
+        return if (limit != null) {
+            query.limit(limit).fetchMaps()
+        } else {
+            query.fetchMaps()
+        }
+    }
+
+    fun queryCustomEventsCsv(
+        appName: String?,
         workerId: String?,
         eventName: String?,
         from: Instant,
         to: Instant
-    ): List<Map<String, Any?>> {
-        val conditions = mutableListOf(
-            DSL.field("ts").between(from, to)
-        )
-        workerId?.let { conditions.add(DSL.field("worker_id").eq(it)) }
-        eventName?.let { conditions.add(DSL.field("event_name").eq(it)) }
-
-        return dsl.select()
-            .from(DSL.table("custom_events"))
-            .where(conditions)
-            .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
-            .fetchMaps()
+    ): String {
+        val rows = queryCustomEvents(appName, workerId, eventName, from, to, null)
+        val header = listOf("timestamp", "appName", "workerId", "eventType", "eventName", "payloadJson")
+        return buildString {
+            appendLine(header.joinToString(","))
+            rows.forEach { row ->
+                appendLine(
+                    listOf(
+                        row["timestamp"],
+                        row["appName"],
+                        row["workerId"],
+                        row["eventType"],
+                        row["eventName"],
+                        row["payload"]
+                    ).joinToString(",") { csvEscape(it?.toString().orEmpty()) }
+                )
+            }
+        }
     }
 
     /** METHOD_TRACE 이벤트 조회 */
@@ -113,4 +158,9 @@ class EventQueryService(
             .orderBy(DSL.field("ts").asc(), DSL.field("id").asc())
             .fetchMaps()
     }
+}
+
+private fun csvEscape(value: String): String {
+    val escaped = value.replace("\"", "\"\"")
+    return "\"$escaped\""
 }
