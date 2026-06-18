@@ -1,6 +1,8 @@
 package com.logfriends.platform.api.rest
 
 import com.logfriends.platform.infrastructure.query.EventQueryService
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
@@ -39,12 +41,27 @@ class EventQueryController(
 
     @GetMapping("/custom")
     fun queryCustom(
+        @RequestParam(required = false) appName: String?,
+        @RequestParam(required = false) workerId: String?,
+        @RequestParam(required = false) eventName: String?,
+        @RequestParam from: Instant,
+        @RequestParam to: Instant,
+        @RequestParam(required = false, defaultValue = "100") limit: Int
+    ): ResponseEntity<List<Map<String, Any?>>> =
+        ResponseEntity.ok(eventQueryService.queryCustomEvents(appName, workerId, eventName, from, to, limit.coerceIn(1, 500)))
+
+    @GetMapping("/custom.csv", produces = ["text/csv"])
+    fun exportCustomCsv(
+        @RequestParam(required = false) appName: String?,
         @RequestParam(required = false) workerId: String?,
         @RequestParam(required = false) eventName: String?,
         @RequestParam from: Instant,
         @RequestParam to: Instant
-    ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryCustomEvents(workerId, eventName, from, to))
+    ): ResponseEntity<String> =
+        ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"log-friends-custom-events.csv\"")
+            .body(eventQueryService.queryCustomEventsCsv(appName, workerId, eventName, from, to))
 
     @GetMapping("/method-trace")
     fun queryMethodTrace(
