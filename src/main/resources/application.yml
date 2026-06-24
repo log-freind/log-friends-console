@@ -39,6 +39,8 @@ spring:
     default-property-inclusion: non_null
 
 logfriends:
+  web:
+    allowed-origins: ${LOGFRIENDS_WEB_ALLOWED_ORIGINS:http://localhost:3000}
   ingest:
     queue-capacity: 10000
 
