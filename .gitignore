@@ -1,9 +1,14 @@
 .gradle/
 build/
+bin/
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
 .idea/
+.vscode/
 *.iml
 out/
 .DS_Store
+.env
+.env.local
+.env.*.local
