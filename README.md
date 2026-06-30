@@ -1,6 +1,8 @@
 # log-friends-console
 
-Spring Boot Console server for Log Friends. It receives SDK HTTP JSON batches, registers and manages agents, stores raw events in PostgreSQL/TimescaleDB, and exposes the Log Catalog, Raw Events page, query APIs, and derived event statistics.
+Spring Boot backend API for Log Friends. It receives SDK HTTP JSON batches, registers and manages agents, stores raw events in PostgreSQL/TimescaleDB, builds Log Catalog data, exposes Raw Events query APIs, and generates derived event statistics.
+
+The frontend UI is separated into `log-friends-console-web`. This repository owns ingest, storage, scheduling, and API contracts.
 
 ## Current Architecture
 
@@ -8,11 +10,12 @@ Spring Boot Console server for Log Friends. It receives SDK HTTP JSON batches, r
 log-friends-sdk
   -> POST /ingest
   -> log-friends-console
-  -> TimescaleDB/PostgreSQL
-  -> Dashboard / Log Catalog
+  -> PostgreSQL / TimescaleDB
+  -> Console REST API
+  -> log-friends-console-web
 ```
 
-The current path is intentionally small: SDKs send JSON batches directly to the Console, and the Console persists, validates, aggregates, and serves the data. There is no broker or separate distributed pipeline in this phase.
+The current path is intentionally small. SDKs send JSON batches directly to the Console backend. There is no Kafka, Spark, ClickHouse, or separate distributed pipeline in this phase.
 
 ## Responsibilities
 
@@ -20,8 +23,8 @@ The current path is intentionally small: SDKs send JSON batches directly to the 
 - **Raw event storage**: store valid events in type-specific raw event tables
 - **Partial failure handling**: store malformed events separately without failing the whole batch
 - **Agent management**: register startup agents through `POST /api/agents`
-- **Log Catalog**: combine LogSpec metadata, recent `LOG_EVENT` samples, mismatch checks, field requests, and discovered LogEvent hints
-- **Raw Events UI**: serve `/raw-events` for raw event lookup and custom event CSV export
+- **Log Catalog API**: combine LogSpec metadata, recent `LOG_EVENT` samples, mismatch checks, field requests, and discovered LogEvent hints
+- **Raw Events API**: query `LOG_EVENT` records and export filtered rows as CSV
 - **Derived stats**: generate dashboard/stat data with an internal scheduler
 - **Metadata APIs**: manage agents, log specs, discovered candidates, field requests, raw event queries, and event stats
 
@@ -61,9 +64,9 @@ The SDK registers its running app instance at startup with `POST /api/agents`. T
 
 Registration creates the Console Agent record and returns the `agentId` plus known LogSpecs for the app. Duplicate `workerId` registration is rejected; use `PATCH /api/agents/{id}` for metadata changes and `POST /api/agents/heartbeat` for liveness updates.
 
-## Log Catalog
+## Log Catalog API
 
-`/log-catalog` is the default UI. The Log Catalog API exposes:
+The Console Web app consumes these endpoints:
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -81,11 +84,11 @@ SDKs can report candidate `LOG_EVENT` definitions after agent registration:
 | `POST /api/agents/{agentId}/discovered-log-events` | upsert discovered candidates from source class/method metadata |
 | `GET /api/agents/{agentId}/discovered-log-events` | list discovered candidates for an agent |
 
-Candidates are stored in `discovered_log_events` with status such as `DISCOVERED` or `IGNORED`, and appear as hints in the Log Catalog.
+Candidates are stored in `discovered_log_events` with status such as `DISCOVERED` or `IGNORED`, and appear as hints in the Log Catalog API.
 
-## Raw Events
+## Raw Events API
 
-`/raw-events` serves the raw event lookup page. The backing APIs are:
+Raw Events are exposed through API endpoints. The standalone frontend renders the UI.
 
 | Endpoint | Event data |
 |----------|------------|
@@ -102,8 +105,7 @@ Candidates are stored in `discovered_log_events` with status such as `DISCOVERED
 
 The first implementation keeps stats generation inside `log-friends-console`:
 
-- scheduler runs every 1 minute
-- scheduler recalculates the recent 5 minute window
+- scheduler recalculates the recent window on a fixed delay
 - `event_stats` uses `(agent_id, event_type, window_start)` as a unique upsert key
 - failed ingest events are aggregated into `ingest_failure_stats`
 - unregistered workers are not auto-registered; their stats are skipped
@@ -115,18 +117,20 @@ The Console uses PostgreSQL with the TimescaleDB extension. Flyway manages schem
 
 Flyway creates the agent, LogSpec, raw event, failure, stats, field request, and discovered LogEvent tables. Timescale hypertables are created for the raw event tables and `ingest_failed_events`.
 
+Start an external PostgreSQL/TimescaleDB instance before running the application.
+
 ## REST API
 
 | Area | Endpoint |
 |------|----------|
 | Ingest | `POST /ingest` |
-| Agents | `POST /api/agents`, `GET /api/agents`, `POST /api/agents/heartbeat` |
-| Log Catalog | `GET /api/log-catalog/*` |
-| Log specs | `/api/log-specs` |
-| Discovered LogEvents | `/api/agents/{agentId}/discovered-log-events` |
-| Field requests | `/api/field-requests` |
-| Raw events | `GET /api/events/*`, `GET /api/events/custom.csv` |
-| Event stats | `/api/event-stats` |
+| Agents | `POST /api/agents`, `GET /api/agents`, `GET /api/agents/{id}`, `PATCH /api/agents/{id}`, `DELETE /api/agents/{id}`, `POST /api/agents/heartbeat` |
+| Log Catalog | `GET /api/log-catalog/apps`, `GET /api/log-catalog/apps/{appName}/events` |
+| Log specs | `GET /api/log-specs`, `GET /api/log-specs/by-app`, `GET /api/log-specs/by-agent/{agentId}`, `PUT /api/log-specs/by-agent/{agentId}` |
+| Discovered LogEvents | `POST /api/agents/{agentId}/discovered-log-events`, `GET /api/agents/{agentId}/discovered-log-events` |
+| Field requests | `POST /api/field-requests`, `PATCH /api/field-requests/{id}/status` |
+| Raw events | `GET /api/events/http`, `GET /api/events/log`, `GET /api/events/jdbc`, `GET /api/events/method-trace`, `GET /api/events/custom`, `GET /api/events/custom.csv` |
+| Event stats | `GET /api/event-stats/by-agent/{agentId}`, `GET /api/event-stats/summary/by-agent/{agentId}`, `GET /api/event-stats/summary/by-app`, `POST /api/event-stats/by-agent/{agentId}` |
 
 ## Local Run and Build
 
@@ -136,7 +140,7 @@ Start PostgreSQL/TimescaleDB first, then run from this directory:
 ./gradlew bootRun
 ```
 
-Console runs on:
+Console backend runs on:
 
 ```text
 http://localhost:8080
@@ -159,8 +163,26 @@ Build and test:
 | `POSTGRES_DB` | `logfriends_platform` |
 | `POSTGRES_USER` | `logfriends` |
 | `POSTGRES_PASSWORD` | `logfriends` |
+| `LOGFRIENDS_WEB_ALLOWED_ORIGINS` | `http://localhost:3000` |
 
-Use `.env` for local database overrides only. The application reads these values into `spring.datasource.url`, username, and password.
+`LOGFRIENDS_WEB_ALLOWED_ORIGINS` is used for CORS on `/api/**` and `/ingest`. Multiple origins can be provided as a comma-separated value.
+
+Example local database config:
+
+```bash
+POSTGRES_HOST=192.168.0.112
+POSTGRES_PORT=5433
+POSTGRES_DB=logfriends_platform
+POSTGRES_USER=logfriends
+POSTGRES_PASSWORD=logfriends
+LOGFRIENDS_WEB_ALLOWED_ORIGINS=http://localhost:3000
+```
+
+## Related Repositories
+
+- `../log-friends-sdk`: Spring Boot SDK that captures and sends runtime events
+- `../log-friends-console-web`: standalone Next.js frontend for Console APIs
+- `../log-friends-examples`: shopping mall demo app that generates `LOG_EVENT` data
 
 ## Related Docs
 
