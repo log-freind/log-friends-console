@@ -1,0 +1,11 @@
+.git
+.gradle
+.kotlin
+build
+bin
+.vscode
+.env
+.env.*
+*.iml
+.DS_Store
+out
