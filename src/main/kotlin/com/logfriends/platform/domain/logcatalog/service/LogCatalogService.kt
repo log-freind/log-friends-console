@@ -26,6 +26,7 @@ class LogCatalogService(
     private val logSpecSnapshotRepository: LogSpecSnapshotRepository,
     private val discoveredLogEventRepository: DiscoveredLogEventRepository,
     private val fieldRequestRepository: FieldRequestRepository,
+    private val payloadNormalizer: LogCatalogPayloadNormalizer,
     private val dsl: DSLContext,
     private val objectMapper: ObjectMapper
 ) {
@@ -78,6 +79,7 @@ class LogCatalogService(
             val eventSamples = samplesByEventName[eventName].orEmpty()
             val fields = spec?.fields.orEmpty().mapNotNull { toFieldResponse(it) }
             val latestPayload = eventSamples.firstOrNull()?.payload.orEmpty()
+            val comparablePayload = payloadNormalizer.normalizeForFieldComparison(latestPayload)
 
             LogCatalogEventResponse(
                 eventName = eventName,
@@ -97,7 +99,7 @@ class LogCatalogService(
                         payload = maskPayload(it.payload)
                     )
                 },
-                mismatches = calculateMismatches(fields, latestPayload),
+                mismatches = calculateMismatches(fields, comparablePayload),
                 fieldRequests = requestsByEventName[eventName].orEmpty().map { FieldRequestResponse.from(it) }
             )
         }
