@@ -27,6 +27,7 @@ class LogCatalogService(
     private val discoveredLogEventRepository: DiscoveredLogEventRepository,
     private val fieldRequestRepository: FieldRequestRepository,
     private val payloadNormalizer: LogCatalogPayloadNormalizer,
+    private val mismatchCalculator: LogCatalogMismatchCalculator,
     private val dsl: DSLContext,
     private val objectMapper: ObjectMapper
 ) {
@@ -99,7 +100,7 @@ class LogCatalogService(
                         payload = maskPayload(it.payload)
                     )
                 },
-                mismatches = calculateMismatches(fields, comparablePayload),
+                mismatches = mismatchCalculator.calculate(fields, comparablePayload),
                 fieldRequests = requestsByEventName[eventName].orEmpty().map { FieldRequestResponse.from(it) }
             )
         }
@@ -246,24 +247,6 @@ class LogCatalogService(
             description = description,
             example = example
         )
-    }
-
-    private fun calculateMismatches(
-        fields: List<LogCatalogFieldResponse>,
-        payload: Map<String, Any?>
-    ): List<LogCatalogMismatchResponse> {
-        if (fields.isEmpty() && payload.isEmpty()) return emptyList()
-
-        val specFieldNames = fields.map { it.name }.toSet()
-        val requiredFieldNames = fields.filter { it.required }.map { it.name }.toSet()
-        val payloadFieldNames = payload.keys
-
-        val extraFields = (payloadFieldNames - specFieldNames)
-            .map { LogCatalogMismatchResponse(LogCatalogMismatchCode.EXTRA_FIELD, it) }
-        val missingFields = (requiredFieldNames - payloadFieldNames)
-            .map { LogCatalogMismatchResponse(LogCatalogMismatchCode.MISSING_FIELD, it) }
-
-        return (extraFields + missingFields).sortedBy { it.fieldName }
     }
 
     private fun maskPayload(payload: Map<String, Any?>): Map<String, Any?> =
