@@ -21,8 +21,9 @@ env:
   HEALTH_URL: http://127.0.0.1:30080/actuator/health
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-deploy:
+    runs-on: [self-hosted, Linux, X64]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,6 +33,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Validate runner tools
+        run: |
+          docker version
+          microk8s status --wait-ready
 
       - name: Test
         run: ./gradlew test --no-daemon
@@ -55,14 +61,6 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-  deploy:
-    needs: build
-    runs-on: [self-hosted, Linux, X64]
-
-    steps:
-      - name: Validate MicroK8s
-        run: microk8s status --wait-ready
 
       - name: Restart Console deployment
         run: |
