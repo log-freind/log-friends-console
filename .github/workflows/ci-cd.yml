@@ -1,6 +1,9 @@
 name: Console CI/CD
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -8,21 +11,22 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 concurrency:
-  group: log-friends-console-deploy
+  group: log-friends-console-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   IMAGE_NAME: ghcr.io/log-freind/log-friends-console
   K8S_NAMESPACE: log-friends
   K8S_DEPLOYMENT: log-friends-console
+  K8S_CONTAINER: console
   HEALTH_URL: http://127.0.0.1/actuator/health
 
 jobs:
-  build-and-deploy:
-    runs-on: [self-hosted, Linux, X64]
+  ci:
+    name: Test
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -33,14 +37,28 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
+
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+  deploy:
+    name: Build image and deploy
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: ci
+    runs-on: [self-hosted, Linux, X64]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Validate runner tools
         run: |
           docker version
           microk8s status --wait-ready
-
-      - name: Test
-        run: ./gradlew test --no-daemon
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -62,10 +80,16 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Restart Console deployment
+      - name: Deploy commit image
         run: |
-          microk8s kubectl rollout restart deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}
-          microk8s kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE} --timeout=180s
+          microk8s kubectl set image \
+            deployment/${K8S_DEPLOYMENT} \
+            ${K8S_CONTAINER}=${IMAGE_NAME}:${GITHUB_SHA} \
+            -n ${K8S_NAMESPACE}
+          microk8s kubectl rollout status \
+            deployment/${K8S_DEPLOYMENT} \
+            -n ${K8S_NAMESPACE} \
+            --timeout=180s
 
       - name: Health check
         run: |
