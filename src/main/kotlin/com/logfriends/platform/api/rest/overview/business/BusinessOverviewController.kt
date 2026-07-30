@@ -1,5 +1,7 @@
 package com.logfriends.platform.api.rest.overview.business
 
+import com.logfriends.platform.common.exception.BusinessException
+import com.logfriends.platform.common.exception.ErrorCode
 import com.logfriends.platform.domain.overview.business.BusinessOverviewService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,12 +24,19 @@ class BusinessOverviewController(
         @RequestParam(required = false) workerId: String?,
         @RequestParam(defaultValue = "10") limit: Int
     ): ResponseEntity<BusinessOverviewResponse> {
+        if (!from.isBefore(to)) {
+            throw BusinessException(ErrorCode.INVALID_INPUT, "from must be before to")
+        }
+        if (limit !in 1..100) {
+            throw BusinessException(ErrorCode.INVALID_INPUT, "limit must be between 1 and 100")
+        }
+
         val items = businessOverviewService.getOverview(
             from = from,
             to = to,
             appName = appName,
             workerId = workerId,
-            limit = limit.coerceIn(1, 100)
+            limit = limit
         )
         return ResponseEntity.ok(BusinessOverviewResponse(items.map(BusinessOverviewItem::from)))
     }

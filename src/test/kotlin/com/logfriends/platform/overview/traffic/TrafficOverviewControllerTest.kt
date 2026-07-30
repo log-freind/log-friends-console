@@ -1,6 +1,7 @@
 package com.logfriends.platform.overview.traffic
 
-import org.assertj.core.api.Assertions.assertThat
+import com.logfriends.platform.common.exception.BusinessException
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
@@ -38,13 +39,12 @@ class TrafficOverviewControllerTest {
     }
 
     @Test
-    fun `caps limit at 100`() {
+    fun `rejects limit above 100`() {
         val from = Instant.parse("2026-07-30T00:00:00Z")
         val to = Instant.parse("2026-07-30T01:00:00Z")
-        given(repository.findTopTraffic(from, to, null, null, 100)).willReturn(emptyList())
 
-        val response = controller.getTraffic(from, to, null, null, 101)
-
-        assertThat(response.body).isEqualTo(TrafficOverviewResponse(emptyList()))
+        assertThatThrownBy {
+            controller.getTraffic(from, to, null, null, 101)
+        }.isInstanceOf(BusinessException::class.java)
     }
 }

@@ -1,5 +1,6 @@
 package com.logfriends.platform.overview.performance
 
+import com.logfriends.platform.common.exception.GlobalExceptionHandler
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
@@ -12,6 +13,7 @@ class PerformanceOverviewControllerTest {
     private val service: PerformanceOverviewService = mock()
     private val mockMvc = MockMvcBuilders
         .standaloneSetup(PerformanceOverviewController(service))
+        .setControllerAdvice(GlobalExceptionHandler())
         .build()
 
     @Test

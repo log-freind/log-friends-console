@@ -2,9 +2,11 @@ package com.logfriends.platform.common.exception
 
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.MissingServletRequestParameterException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import java.time.Instant
 
@@ -34,6 +36,16 @@ class GlobalExceptionHandler {
         return ResponseEntity
             .badRequest()
             .body(ErrorResponse("VALIDATION_ERROR", message))
+    }
+
+    @ExceptionHandler(
+        MissingServletRequestParameterException::class,
+        MethodArgumentTypeMismatchException::class
+    )
+    fun handleInvalidQueryParameter(e: Exception): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .badRequest()
+            .body(ErrorResponse("INVALID_INPUT", e.message ?: "잘못된 쿼리 파라미터입니다"))
     }
 
     @ExceptionHandler(NoResourceFoundException::class)

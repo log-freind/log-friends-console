@@ -1,5 +1,7 @@
 package com.logfriends.platform.overview.traffic
 
+import com.logfriends.platform.common.exception.BusinessException
+import com.logfriends.platform.common.exception.ErrorCode
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
@@ -20,12 +22,19 @@ class TrafficOverviewController(
         @RequestParam(required = false) workerId: String?,
         @RequestParam(defaultValue = "10") limit: Int
     ): ResponseEntity<TrafficOverviewResponse> {
+        if (!from.isBefore(to)) {
+            throw BusinessException(ErrorCode.INVALID_INPUT, "from must be before to")
+        }
+        if (limit !in 1..100) {
+            throw BusinessException(ErrorCode.INVALID_INPUT, "limit must be between 1 and 100")
+        }
+
         val items = repository.findTopTraffic(
             from = from,
             to = to,
             appName = appName,
             workerId = workerId,
-            limit = limit.coerceIn(1, 100)
+            limit = limit
         )
         return ResponseEntity.ok(TrafficOverviewResponse(items))
     }

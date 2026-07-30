@@ -1,7 +1,9 @@
 package com.logfriends.platform.api.rest.overview.business
 
+import com.logfriends.platform.common.exception.BusinessException
 import com.logfriends.platform.domain.overview.business.BusinessEventCount
 import com.logfriends.platform.domain.overview.business.BusinessOverviewService
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
@@ -39,12 +41,10 @@ class BusinessOverviewControllerTest {
     }
 
     @Test
-    fun `caps limit at one hundred`() {
-        given(service.getOverview(from, to, null, null, 100)).willReturn(emptyList())
-
-        controller.getOverview(from, to, null, null, 101)
-
-        verify(service).getOverview(from, to, null, null, 100)
+    fun `rejects limit above one hundred`() {
+        assertThatThrownBy {
+            controller.getOverview(from, to, null, null, 101)
+        }.isInstanceOf(BusinessException::class.java)
     }
 
     @Test
