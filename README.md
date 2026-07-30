@@ -111,6 +111,19 @@ The first implementation keeps stats generation inside `log-friends-console`:
 - unregistered workers are not auto-registered; their stats are skipped
 - old backfill is out of scope for the first implementation
 
+## Overview Analytics API
+
+The Console Web Overview queries raw event tables for a selected time range:
+
+| Endpoint | Metric |
+|----------|--------|
+| `GET /api/overview/traffic` | most requested HTTP endpoints |
+| `GET /api/overview/performance` | average, p95, and maximum endpoint latency |
+| `GET /api/overview/business` | most frequent `LOG_EVENT` names |
+| `GET /api/overview/reliability` | HTTP error rate, top HTTP errors, and ingest failures |
+
+All four endpoints require ISO-8601 `from` and `to` query parameters. Optional filters are `appName`, `workerId`, and `limit` (`1..100`, default `10`). The upper time boundary is exclusive.
+
 ## Database and Migrations
 
 The Console uses PostgreSQL with the TimescaleDB extension. Flyway manages schema creation from `src/main/resources/db/migration`; Hibernate runs in `validate` mode.
@@ -130,6 +143,7 @@ Start an external PostgreSQL/TimescaleDB instance before running the application
 | Discovered LogEvents | `POST /api/agents/{agentId}/discovered-log-events`, `GET /api/agents/{agentId}/discovered-log-events` |
 | Field requests | `POST /api/field-requests`, `PATCH /api/field-requests/{id}/status` |
 | Raw events | `GET /api/events/http`, `GET /api/events/log`, `GET /api/events/jdbc`, `GET /api/events/method-trace`, `GET /api/events/custom`, `GET /api/events/custom.csv` |
+| Overview | `GET /api/overview/traffic`, `GET /api/overview/performance`, `GET /api/overview/business`, `GET /api/overview/reliability` |
 | Event stats | `GET /api/event-stats/by-agent/{agentId}`, `GET /api/event-stats/summary/by-agent/{agentId}`, `GET /api/event-stats/summary/by-app`, `POST /api/event-stats/by-agent/{agentId}` |
 
 ## Local Run and Build
