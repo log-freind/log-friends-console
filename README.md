@@ -205,6 +205,23 @@ Build and test:
 ./gradlew build
 ```
 
+## Console Direct Load Test
+
+Use the direct load script to isolate Console ingest and TimescaleDB storage from SDK
+capture and queue behavior. It sends `catalogProductsListed` events in HTTP batches and
+checks the `received`, `stored`, and `failed` response totals.
+
+```bash
+LOGFRIENDS_INGEST_URL=http://localhost:8080/ingest \
+LOGFRIENDS_WORKER_ID=order-service-local-1 \
+TOTAL_EVENTS=10000 \
+BATCH_SIZE=100 \
+./scripts/load-test-catalog-products-listed.sh
+```
+
+The script requires `curl` and `jq`. Every event contains a unique `runId`, and the
+script prints SQL for verifying the exact stored row count afterward.
+
 ## Deployment
 
 Pushes to `main` run tests on a GitHub-hosted runner. The deploy job then runs on the NAS self-hosted runner, builds an `linux/amd64` image, pushes commit and `latest` tags to GHCR, updates the MicroK8s Deployment, waits for rollout, and checks `/actuator/health`.
