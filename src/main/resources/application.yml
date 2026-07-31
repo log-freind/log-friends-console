@@ -43,6 +43,7 @@ logfriends:
     allowed-origins: ${LOGFRIENDS_WEB_ALLOWED_ORIGINS:http://localhost:3000}
   ingest:
     queue-capacity: 10000
+    db-batch-size: ${LOGFRIENDS_INGEST_DB_BATCH_SIZE:100}
 
 logging:
   level:

@@ -67,7 +67,7 @@ Flyway creates and validates the required schema at startup.
 
 ## Ingest
 
-`POST /ingest` accepts a batch with a fixed `workerId` and event payloads captured by the SDK. Valid events are stored by `eventType`; invalid events are stored in `ingest_failed_events`.
+`POST /ingest` accepts a batch with a fixed `workerId` and event payloads captured by the SDK. Valid events are grouped by `eventType` and written to their raw tables in configurable database chunks; invalid events are stored in `ingest_failed_events`.
 
 `/ingest` returns counts only. It does not return failed payload details.
 
@@ -221,8 +221,11 @@ Pushes to `main` run tests on a GitHub-hosted runner. The deploy job then runs o
 | `POSTGRES_USER` | `logfriends` |
 | `POSTGRES_PASSWORD` | `logfriends` |
 | `LOGFRIENDS_WEB_ALLOWED_ORIGINS` | `http://localhost:3000` |
+| `LOGFRIENDS_INGEST_DB_BATCH_SIZE` | `100` |
 
 `LOGFRIENDS_WEB_ALLOWED_ORIGINS` is used for CORS on `/api/**` and `/ingest`. Multiple origins can be provided as a comma-separated value.
+
+`LOGFRIENDS_INGEST_DB_BATCH_SIZE` controls how many same-type events the Console writes in one database batch. Start with `100`; validate larger values under load before using them in production.
 
 Example local database config:
 
