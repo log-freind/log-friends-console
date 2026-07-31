@@ -1,8 +1,28 @@
 # log-friends-console
 
-Spring Boot backend API for Log Friends. It receives SDK HTTP JSON batches, registers and manages agents, stores raw events in PostgreSQL/TimescaleDB, builds Log Catalog data, exposes Raw Events query APIs, and generates derived event statistics.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Console CI/CD](https://github.com/log-freind/log-friends-console/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/log-freind/log-friends-console/actions/workflows/ci-cd.yml)
+[![JVM](https://img.shields.io/badge/JVM-21-007396.svg)](https://adoptium.net/)
+
+Log Friends Console is the storage and interpretation backend for structured events collected from Spring Boot services.
+
+It keeps the original payload, connects it to the API and field descriptions discovered from code, and exposes one contract that backend and data teams can discuss. The goal is not merely to save logs, but to make later analysis possible without reconstructing every string log by hand.
 
 The frontend UI is separated into `log-friends-console-web`. This repository owns ingest, storage, scheduling, and API contracts.
+
+## What It Connects
+
+```text
+Backend implementation
+  -> SDK eventName + payload
+  -> Console Raw Event storage
+  -> Log Catalog contract + sample + mismatch
+  -> data analysis / ML preparation
+```
+
+- **Raw Events** answer: what was actually captured?
+- **Log Catalog** answers: what does this event mean, where did it occur, and do real fields match the contract?
+- **Overview** answers: which endpoints and events are active, slow, or failing in the selected time range?
 
 ## Current Architecture
 
@@ -16,6 +36,23 @@ log-friends-sdk
 ```
 
 The current path is intentionally small. SDKs send JSON batches directly to the Console backend. There is no Kafka, Spark, ClickHouse, or separate distributed pipeline in this phase.
+
+## Quick Start
+
+Start PostgreSQL with the TimescaleDB extension, configure the connection, and run:
+
+```bash
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5433
+export POSTGRES_DB=logfriends_platform
+export POSTGRES_USER=logfriends
+export POSTGRES_PASSWORD=logfriends
+
+./gradlew bootRun
+curl http://localhost:8080/actuator/health
+```
+
+Flyway creates and validates the required schema at startup.
 
 ## Responsibilities
 
@@ -119,10 +156,12 @@ The Console Web Overview queries raw event tables for a selected time range:
 |----------|--------|
 | `GET /api/overview/traffic` | most requested HTTP endpoints |
 | `GET /api/overview/performance` | average, p95, and maximum endpoint latency |
-| `GET /api/overview/business` | most frequent `LOG_EVENT` names |
+| `GET /api/overview/business` | most frequently captured `LOG_EVENT` names |
 | `GET /api/overview/reliability` | HTTP error rate, top HTTP errors, and ingest failures |
 
 All four endpoints require ISO-8601 `from` and `to` query parameters. Optional filters are `appName`, `workerId`, and `limit` (`1..100`, default `10`). The upper time boundary is exclusive.
+
+The `/business` path is retained as an API name, while the UI labels the result **Event Activity**. A high count means that an annotated event was captured frequently; it does not by itself prove business value or revenue.
 
 ## Database and Migrations
 
@@ -165,6 +204,10 @@ Build and test:
 ```bash
 ./gradlew build
 ```
+
+## Deployment
+
+Pushes to `main` run tests on a GitHub-hosted runner. The deploy job then runs on the NAS self-hosted runner, builds an `linux/amd64` image, pushes commit and `latest` tags to GHCR, updates the MicroK8s Deployment, waits for rollout, and checks `/actuator/health`.
 
 ## Configuration
 
