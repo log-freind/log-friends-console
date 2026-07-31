@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service
 class IngestService(
     private val dsl: DSLContext,
     private val objectMapper: ObjectMapper,
+    private val ingestBatchProperties: IngestBatchProperties,
     private val ingestValidator: IngestValidator = IngestValidator()
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
+    private val eventPartitioner = IngestEventPartitioner(ingestValidator)
 
     fun save(request: IngestRequest): IngestResponse {
         if (request.events.isEmpty()) {
@@ -26,50 +28,36 @@ class IngestService(
         var stored = 0
         var failed = 0
 
-        request.events.forEach { event ->
-            val validation = ingestValidator.validate(request.workerId, event)
-            if (validation != null) {
-                failed++
-                saveFailedEvent(request.workerId, event, validation)
-                return@forEach
-            }
+        val partition = eventPartitioner.partition(request.workerId, request.events)
+        partition.invalidEvents.forEach { invalid ->
+            failed++
+            saveFailedEvent(request.workerId, invalid.event, invalid.reason)
+        }
 
-            try {
-                when (event.type) {
-                "LOG" -> {
-                    saveLogEvents(request.workerId, listOf(event))
-                    stored++
+        partition.validEventsByType.forEach { (type, events) ->
+            events.chunked(ingestBatchProperties.dbBatchSize).forEach { batch ->
+                try {
+                    when (type) {
+                        "LOG" -> saveLogEvents(request.workerId, batch)
+                        "HTTP" -> saveHttpEvents(request.workerId, batch)
+                        "JDBC" -> saveJdbcEvents(request.workerId, batch)
+                        "METHOD_TRACE" -> saveMethodTraceEvents(request.workerId, batch)
+                        "LOG_EVENT" -> saveCustomEvents(request.workerId, batch)
+                        else -> error("validated event type must be supported: $type")
+                    }
+                    stored += batch.size
+                } catch (ex: Exception) {
+                    failed += batch.size
+                    log.error(
+                        "[Ingest] raw event store failed worker={} type={}",
+                        request.workerId,
+                        type,
+                        ex
+                    )
+                    batch.forEach { event ->
+                        saveFailedEvent(request.workerId, event, IngestFailureReason.STORE_FAILED)
+                    }
                 }
-                "HTTP" -> {
-                    saveHttpEvents(request.workerId, listOf(event))
-                    stored++
-                }
-                "JDBC" -> {
-                    saveJdbcEvents(request.workerId, listOf(event))
-                    stored++
-                }
-                "METHOD_TRACE" -> {
-                    saveMethodTraceEvents(request.workerId, listOf(event))
-                    stored++
-                }
-                "LOG_EVENT" -> {
-                    saveCustomEvents(request.workerId, listOf(event))
-                    stored++
-                }
-                else -> {
-                    failed++
-                    saveFailedEvent(request.workerId, event, IngestFailureReason.UNKNOWN_TYPE)
-                }
-            }
-            } catch (ex: Exception) {
-                failed++
-                log.error(
-                    "[Ingest] raw event store failed worker={} type={}",
-                    request.workerId,
-                    event.type,
-                    ex
-                )
-                saveFailedEvent(request.workerId, event, IngestFailureReason.STORE_FAILED)
             }
         }
 
