@@ -35,16 +35,28 @@ class AgentService(
         sdkVersion: String? = null,
         javaVersion: String? = null,
         hostname: String? = null,
-        metadata: Map<String, Any> = emptyMap()
+        metadata: Map<String, Any> = emptyMap(),
+        sourceType: com.logfriends.platform.domain.agent.entity.SourceType? = null
     ): Agent {
-        if (agentRepository.existsByWorkerId(workerId)) {
-            throw BusinessException(ErrorCode.AGENT_ALREADY_REGISTERED)
+        val existing = agentRepository.findByWorkerId(workerId).orElse(null)
+        if (existing != null) {
+            existing.updateInfo(
+                appName = appName,
+                sdkVersion = sdkVersion,
+                javaVersion = javaVersion,
+                hostname = hostname,
+                metadata = metadata,
+                sourceType = sourceType
+            )
+            existing.heartbeat()
+            return agentRepository.save(existing)
         }
 
         val agent = Agent(
             workerId = workerId,
             appName = appName,
             metadata = metadata,
+            sourceType = sourceType ?: com.logfriends.platform.domain.agent.entity.SourceType.JVM,
             status = AgentStatus.RUNNING,
             lastHeartbeat = Instant.now()
         )
@@ -69,9 +81,10 @@ class AgentService(
     @Transactional
     fun updateAgent(id: Long, appName: String?, sdkVersion: String?,
                     javaVersion: String?, hostname: String?,
-                    metadata: Map<String, Any>?): Agent {
+                    metadata: Map<String, Any>?,
+                    sourceType: com.logfriends.platform.domain.agent.entity.SourceType? = null): Agent {
         val agent = findById(id)
-        agent.updateInfo(appName, sdkVersion, javaVersion, hostname, metadata)
+        agent.updateInfo(appName, sdkVersion, javaVersion, hostname, metadata, sourceType)
         return agentRepository.save(agent)
     }
 

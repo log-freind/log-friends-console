@@ -14,6 +14,12 @@ data class IngestResponse(
 data class EventPayload(
     val type: String,
     val timestamp: String,
+    // Common / Client Metadata
+    val eventId: String? = null,
+    val sessionId: String? = null,
+    val appInstanceId: String? = null,
+    val sdkName: String? = null,
+    val sdkVersion: String? = null,
     // HTTP
     val method: String? = null,
     val uri: String? = null,

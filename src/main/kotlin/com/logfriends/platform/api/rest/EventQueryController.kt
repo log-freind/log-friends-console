@@ -44,24 +44,26 @@ class EventQueryController(
         @RequestParam(required = false) appName: String?,
         @RequestParam(required = false) workerId: String?,
         @RequestParam(required = false) eventName: String?,
+        @RequestParam(required = false) sessionId: String?,
         @RequestParam from: Instant,
         @RequestParam to: Instant,
         @RequestParam(required = false, defaultValue = "100") limit: Int
     ): ResponseEntity<List<Map<String, Any?>>> =
-        ResponseEntity.ok(eventQueryService.queryCustomEvents(appName, workerId, eventName, from, to, limit.coerceIn(1, 500)))
+        ResponseEntity.ok(eventQueryService.queryCustomEvents(appName, workerId, eventName, from, to, limit.coerceIn(1, 500), sessionId))
 
     @GetMapping("/custom.csv", produces = ["text/csv"])
     fun exportCustomCsv(
         @RequestParam(required = false) appName: String?,
         @RequestParam(required = false) workerId: String?,
         @RequestParam(required = false) eventName: String?,
+        @RequestParam(required = false) sessionId: String?,
         @RequestParam from: Instant,
         @RequestParam to: Instant
     ): ResponseEntity<String> =
         ResponseEntity.ok()
             .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"log-friends-custom-events.csv\"")
-            .body(eventQueryService.queryCustomEventsCsv(appName, workerId, eventName, from, to))
+            .body(eventQueryService.queryCustomEventsCsv(appName, workerId, eventName, from, to, sessionId))
 
     @GetMapping("/method-trace")
     fun queryMethodTrace(

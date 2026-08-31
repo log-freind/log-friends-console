@@ -20,6 +20,10 @@ class Agent(
     @Column(nullable = false)
     var status: AgentStatus = AgentStatus.UNKNOWN,
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false)
+    var sourceType: SourceType = SourceType.JVM,
+
     var sdkVersion: String? = null,
 
     var javaVersion: String? = null,
@@ -51,13 +55,15 @@ class Agent(
         sdkVersion: String? = null,
         javaVersion: String? = null,
         hostname: String? = null,
-        metadata: Map<String, Any>? = null
+        metadata: Map<String, Any>? = null,
+        sourceType: SourceType? = null
     ) {
         appName?.let { this.appName = it }
         sdkVersion?.let { this.sdkVersion = it }
         javaVersion?.let { this.javaVersion = it }
         hostname?.let { this.hostname = it }
         metadata?.let { this.metadata = it }
+        sourceType?.let { this.sourceType = it }
     }
 }
 

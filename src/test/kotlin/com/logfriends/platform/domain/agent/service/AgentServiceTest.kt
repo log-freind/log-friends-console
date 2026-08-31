@@ -25,7 +25,7 @@ class AgentServiceTest {
 
     @Test
     fun `register stores app name and runtime metadata`() {
-        given(agentRepository.existsByWorkerId("demo-worker-1")).willReturn(false)
+        given(agentRepository.findByWorkerId("demo-worker-1")).willReturn(Optional.empty())
         given(agentRepository.save(ArgumentMatchers.any(Agent::class.java))).willAnswer { it.arguments[0] }
 
         val result = agentService.register(
@@ -65,6 +65,34 @@ class AgentServiceTest {
         assertThat(result.status).isEqualTo(AgentStatus.RUNNING)
         assertThat(result.lastHeartbeat).isNotNull()
         assertThat(result.metadata).containsEntry("hostname", "local")
+        verify(agentRepository).save(agent)
+    }
+
+    @Test
+    fun `register refreshes an existing worker instead of rejecting a restart`() {
+        val agent = Agent(
+            workerId = "demo-worker-1",
+            appName = "old-app",
+            status = AgentStatus.STOPPED
+        )
+        given(agentRepository.findByWorkerId("demo-worker-1")).willReturn(Optional.of(agent))
+        given(agentRepository.save(agent)).willReturn(agent)
+
+        val result = agentService.register(
+            workerId = "demo-worker-1",
+            appName = "demo-app",
+            sdkVersion = "1.0.9",
+            hostname = "nas",
+            metadata = mapOf("service" to "michi-backend")
+        )
+
+        assertThat(result).isSameAs(agent)
+        assertThat(result.appName).isEqualTo("demo-app")
+        assertThat(result.sdkVersion).isEqualTo("1.0.9")
+        assertThat(result.hostname).isEqualTo("nas")
+        assertThat(result.metadata).containsEntry("service", "michi-backend")
+        assertThat(result.status).isEqualTo(AgentStatus.RUNNING)
+        assertThat(result.lastHeartbeat).isNotNull()
         verify(agentRepository).save(agent)
     }
 

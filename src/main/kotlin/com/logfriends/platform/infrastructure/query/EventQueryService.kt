@@ -79,7 +79,8 @@ class EventQueryService(
         eventName: String?,
         from: Instant,
         to: Instant,
-        limit: Int? = null
+        limit: Int? = null,
+        sessionId: String? = null
     ): List<Map<String, Any?>> {
         val conditions = mutableListOf(
             DSL.field("c.ts").ge(from),
@@ -88,14 +89,20 @@ class EventQueryService(
         appName?.let { conditions.add(DSL.field("a.app_name").eq(it)) }
         workerId?.let { conditions.add(DSL.field("c.worker_id").eq(it)) }
         eventName?.let { conditions.add(DSL.field("c.event_name").eq(it)) }
+        sessionId?.let { conditions.add(DSL.field("c.session_id").eq(it)) }
 
         val query = dsl.select(
             DSL.field("c.id").`as`("id"),
             DSL.field("a.app_name").`as`("appName"),
             DSL.field("c.worker_id").`as`("workerId"),
+            DSL.field("a.source_type").`as`("sourceType"),
             DSL.field("c.ts").`as`("timestamp"),
+            DSL.field("c.received_at").`as`("receivedAt"),
             DSL.inline("LOG_EVENT").`as`("eventType"),
             DSL.field("c.event_name").`as`("eventName"),
+            DSL.field("c.event_id").`as`("eventId"),
+            DSL.field("c.session_id").`as`("sessionId"),
+            DSL.field("c.app_instance_id").`as`("appInstanceId"),
             DSL.field("c.payload").`as`("payload")
         )
             .from(DSL.table("custom_events").`as`("c"))
@@ -116,18 +123,24 @@ class EventQueryService(
         workerId: String?,
         eventName: String?,
         from: Instant,
-        to: Instant
+        to: Instant,
+        sessionId: String? = null
     ): String {
-        val rows = queryCustomEvents(appName, workerId, eventName, from, to, null)
-        val header = listOf("timestamp", "appName", "workerId", "eventType", "eventName", "payloadJson")
+        val rows = queryCustomEvents(appName, workerId, eventName, from, to, null, sessionId)
+        val header = listOf("timestamp", "receivedAt", "appName", "workerId", "sourceType", "sessionId", "eventId", "appInstanceId", "eventType", "eventName", "payloadJson")
         return buildString {
             appendLine(header.joinToString(","))
             rows.forEach { row ->
                 appendLine(
                     listOf(
                         row["timestamp"],
+                        row["receivedAt"],
                         row["appName"],
                         row["workerId"],
+                        row["sourceType"] ?: "UNKNOWN",
+                        row["sessionId"] ?: "",
+                        row["eventId"] ?: "",
+                        row["appInstanceId"] ?: "",
                         row["eventType"],
                         row["eventName"],
                         row["payload"]
