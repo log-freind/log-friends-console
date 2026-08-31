@@ -35,7 +35,8 @@ class AgentController(
             sdkVersion = request.sdkVersion,
             javaVersion = request.javaVersion,
             hostname = request.hostname,
-            metadata = request.metadata
+            metadata = request.metadata,
+            sourceType = request.sourceType
         )
         val knownLogSpecs = logSpecService.findAllByAppName(agent.appName)
         return ResponseEntity
@@ -54,7 +55,8 @@ class AgentController(
             sdkVersion = request.sdkVersion,
             javaVersion = request.javaVersion,
             hostname = request.hostname,
-            metadata = request.metadata
+            metadata = request.metadata,
+            sourceType = request.sourceType
         )
         return ResponseEntity.ok(AgentResponse.from(agent))
     }

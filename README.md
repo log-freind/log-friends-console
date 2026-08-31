@@ -222,6 +222,17 @@ BATCH_SIZE=100 \
 The script requires `curl` and `jq`. Every event contains a unique `runId`, and the
 script prints SQL for verifying the exact stored row count afterward.
 
+For the NAS verification used in the portfolio, run the preset wrapper. It sends
+100,000 events to `http://192.168.0.38/ingest` in batches of 100 and exits successfully
+only when the response totals are `received=stored=100000, failed=0`.
+
+```bash
+./scripts/verify-console-storage-100k.sh
+```
+
+Override `LOGFRIENDS_INGEST_URL`, `LOGFRIENDS_WORKER_ID`, `TOTAL_EVENTS`, or
+`BATCH_SIZE` when testing another environment.
+
 ## Deployment
 
 Pushes to `main` run tests on a GitHub-hosted runner. The deploy job then runs on the NAS self-hosted runner, builds an `linux/amd64` image, pushes commit and `latest` tags to GHCR, updates the MicroK8s Deployment, waits for rollout, and checks `/actuator/health`.

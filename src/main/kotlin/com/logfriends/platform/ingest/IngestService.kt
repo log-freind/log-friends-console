@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.logfriends.platform.api.dto.EventPayload
 import com.logfriends.platform.api.dto.IngestRequest
 import com.logfriends.platform.api.dto.IngestResponse
+import com.logfriends.platform.common.exception.BusinessException
+import com.logfriends.platform.common.exception.ErrorCode
 import org.jooq.DSLContext
 import org.jooq.impl.DSL
 import org.slf4j.LoggerFactory
@@ -15,14 +17,27 @@ class IngestService(
     private val dsl: DSLContext,
     private val objectMapper: ObjectMapper,
     private val ingestBatchProperties: IngestBatchProperties,
-    private val ingestValidator: IngestValidator = IngestValidator()
+    private val ingestValidator: IngestValidator = IngestValidator(),
+    private val rateLimiter: IngestRateLimiter = IngestRateLimiter()
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val eventPartitioner = IngestEventPartitioner(ingestValidator)
 
-    fun save(request: IngestRequest): IngestResponse {
+    fun save(request: IngestRequest, clientIp: String? = null): IngestResponse {
         if (request.events.isEmpty()) {
             return IngestResponse(received = 0, stored = 0, failed = 0)
+        }
+
+        // 1. Validate max batch size
+        if (request.events.size > IngestValidator.MAX_BATCH_EVENTS) {
+            throw BusinessException(ErrorCode.BATCH_TOO_LARGE)
+        }
+
+        // 2. Instance-local rate limiting
+        val rateLimitKey = if (!clientIp.isNullOrBlank()) "$clientIp:${request.workerId}" else request.workerId
+        if (!rateLimiter.tryAcquire(rateLimitKey)) {
+            log.warn("[Ingest] rate limit exceeded for key={}", rateLimitKey)
+            throw BusinessException(ErrorCode.RATE_LIMIT_EXCEEDED)
         }
 
         var stored = 0
@@ -37,7 +52,7 @@ class IngestService(
         partition.validEventsByType.forEach { (type, events) ->
             events.chunked(ingestBatchProperties.dbBatchSize).forEach { batch ->
                 try {
-                    when (type) {
+                    val batchStored = when (type) {
                         "LOG" -> saveLogEvents(request.workerId, batch)
                         "HTTP" -> saveHttpEvents(request.workerId, batch)
                         "JDBC" -> saveJdbcEvents(request.workerId, batch)
@@ -45,7 +60,7 @@ class IngestService(
                         "LOG_EVENT" -> saveCustomEvents(request.workerId, batch)
                         else -> error("validated event type must be supported: $type")
                     }
-                    stored += batch.size
+                    stored += batchStored
                 } catch (ex: Exception) {
                     failed += batch.size
                     log.error(
@@ -61,11 +76,14 @@ class IngestService(
             }
         }
 
+        val duplicates = request.events.size - stored - failed
+
         log.debug(
-            "[Ingest] worker={} received={} stored={} failed={}",
+            "[Ingest] worker={} received={} stored={} duplicates={} failed={}",
             request.workerId,
             request.events.size,
             stored,
+            duplicates,
             failed
         )
 
@@ -76,8 +94,8 @@ class IngestService(
         )
     }
 
-    private fun saveLogEvents(workerId: String, events: List<EventPayload>) {
-        dsl.batch(events.map { e ->
+    private fun saveLogEvents(workerId: String, events: List<EventPayload>): Int {
+        val result = dsl.batch(events.map { e ->
             dsl.insertInto(DSL.table("logs"))
                 .columns(
                     DSL.field("worker_id"), DSL.field("ts"),
@@ -94,10 +112,11 @@ class IngestService(
                     e.traceId ?: "", toJsonb(e.mdc)
                 )
         }).execute()
+        return result.count { it > 0 || it == -2 }.coerceAtMost(events.size).let { if (it == 0 && result.isNotEmpty()) events.size else it }
     }
 
-    private fun saveHttpEvents(workerId: String, events: List<EventPayload>) {
-        dsl.batch(events.map { e ->
+    private fun saveHttpEvents(workerId: String, events: List<EventPayload>): Int {
+        val result = dsl.batch(events.map { e ->
             dsl.insertInto(DSL.table("http_events"))
                 .columns(
                     DSL.field("worker_id"), DSL.field("ts"),
@@ -114,10 +133,11 @@ class IngestService(
                     toJsonb(e.requestHeaders)
                 )
         }).execute()
+        return result.count { it > 0 || it == -2 }.coerceAtMost(events.size).let { if (it == 0 && result.isNotEmpty()) events.size else it }
     }
 
-    private fun saveJdbcEvents(workerId: String, events: List<EventPayload>) {
-        dsl.batch(events.map { e ->
+    private fun saveJdbcEvents(workerId: String, events: List<EventPayload>): Int {
+        val result = dsl.batch(events.map { e ->
             dsl.insertInto(DSL.table("jdbc_events"))
                 .columns(
                     DSL.field("worker_id"), DSL.field("ts"),
@@ -132,10 +152,11 @@ class IngestService(
                     e.exception ?: "", e.exceptionStack ?: ""
                 )
         }).execute()
+        return result.count { it > 0 || it == -2 }.coerceAtMost(events.size).let { if (it == 0 && result.isNotEmpty()) events.size else it }
     }
 
-    private fun saveMethodTraceEvents(workerId: String, events: List<EventPayload>) {
-        dsl.batch(events.map { e ->
+    private fun saveMethodTraceEvents(workerId: String, events: List<EventPayload>): Int {
+        val result = dsl.batch(events.map { e ->
             dsl.insertInto(DSL.table("method_traces"))
                 .columns(
                     DSL.field("worker_id"), DSL.field("ts"),
@@ -150,20 +171,52 @@ class IngestService(
                     e.exception ?: "", e.exceptionStack ?: ""
                 )
         }).execute()
+        return result.count { it > 0 || it == -2 }.coerceAtMost(events.size).let { if (it == 0 && result.isNotEmpty()) events.size else it }
     }
 
-    private fun saveCustomEvents(workerId: String, events: List<EventPayload>) {
-        dsl.batch(events.map { e ->
+    private fun saveCustomEvents(workerId: String, events: List<EventPayload>): Int {
+        val now = java.time.Instant.now()
+        val deduplicated = mutableListOf<EventPayload>()
+        val seenEventKeys = mutableSetOf<Pair<String, String>>()
+        for (e in events) {
+            val eventId = e.eventId
+            if (eventId != null) {
+                val key = Pair(eventId, e.timestamp)
+                if (seenEventKeys.add(key)) {
+                    deduplicated.add(e)
+                }
+            } else {
+                deduplicated.add(e)
+            }
+        }
+
+        if (deduplicated.isEmpty()) {
+            return 0
+        }
+
+        val result = dsl.batch(deduplicated.map { e ->
             dsl.insertInto(DSL.table("custom_events"))
                 .columns(
                     DSL.field("worker_id"), DSL.field("ts"),
-                    DSL.field("event_name"), DSL.field("payload")
+                    DSL.field("event_name"), DSL.field("payload"),
+                    DSL.field("event_id"), DSL.field("session_id"),
+                    DSL.field("app_instance_id"), DSL.field("received_at")
                 )
                 .values(
                     workerId, ingestValidator.parseTsOrNull(e.timestamp)!!,
-                    e.eventName ?: "unknown", toJsonb(e.payload)
+                    e.eventName ?: "unknown", toJsonb(e.payload),
+                    e.eventId, e.sessionId, e.appInstanceId, now
                 )
+                .onDuplicateKeyIgnore()
         }).execute()
+
+        // Count statements that actually affected > 0 rows (SUCCESS_NO_INFO is -2 in JDBC)
+        val inserted = result.count { it > 0 }
+        return if (inserted == 0 && result.all { it == -2 }) {
+            deduplicated.size
+        } else {
+            inserted
+        }
     }
 
     private fun saveFailedEvent(workerId: String, event: EventPayload, reason: IngestFailureReason) {

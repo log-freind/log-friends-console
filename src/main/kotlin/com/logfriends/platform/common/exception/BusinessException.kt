@@ -14,6 +14,11 @@ enum class ErrorCode(
     CONFLICT(HttpStatus.CONFLICT, "이미 존재하는 리소스입니다"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "내부 서버 오류"),
 
+    // Ingest & Limits
+    BATCH_TOO_LARGE(HttpStatus.BAD_REQUEST, "단일 배치 이벤트 수가 허용 한도(50개)를 초과했습니다"),
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "인스턴스 요청 속도 제한을 초과했습니다"),
+    PAYLOAD_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "요청 바디 크기가 허용 한도(256KB)를 초과했습니다"),
+
     // Agent
     AGENT_NOT_FOUND(HttpStatus.NOT_FOUND, "에이전트를 찾을 수 없습니다"),
     AGENT_ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 등록된 에이전트입니다"),

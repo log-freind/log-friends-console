@@ -85,6 +85,11 @@ for (( offset=0; offset<TOTAL_EVENTS; offset+=BATCH_SIZE )); do
 done
 
 elapsed_seconds=$(( $(date +%s) - started_at ))
+if (( elapsed_seconds > 0 )); then
+  events_per_second=$((stored_total / elapsed_seconds))
+else
+  events_per_second=$stored_total
+fi
 
 echo
 echo "Result"
@@ -93,13 +98,22 @@ echo "  received: $received_total"
 echo "  stored: $stored_total"
 echo "  failed: $failed_total"
 echo "  elapsedSeconds: $elapsed_seconds"
+echo "  storedEventsPerSecond: $events_per_second"
 
 if (( received_total != TOTAL_EVENTS || stored_total != TOTAL_EVENTS || failed_total != 0 )); then
-  echo "FAIL: Console did not store every submitted event" >&2
+  echo
+  echo "Response assertion"
+  echo "  expected: received=stored=$TOTAL_EVENTS, failed=0"
+  echo "  actual: received=$received_total, stored=$stored_total, failed=$failed_total"
+  echo "FAIL: Console response totals did not match the expected counts" >&2
   exit 1
 fi
 
-echo "PASS: Console stored every submitted event"
+echo
+echo "Response assertion"
+echo "  expected: received=stored=$TOTAL_EVENTS, failed=0"
+echo "  actual: received=$received_total, stored=$stored_total, failed=$failed_total"
+echo "PASS: Console response confirmed received=stored=$TOTAL_EVENTS, failed=0"
 echo
 echo "Database verification SQL:"
 echo "SELECT count(*) FROM custom_events"

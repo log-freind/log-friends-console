@@ -85,7 +85,8 @@ class LogCatalogService(
             LogCatalogEventResponse(
                 eventName = eventName,
                 description = spec?.description,
-                apiContext = spec?.toApiContextResponse(),
+                apiContext = spec?.toApiContextResponse()
+                    ?: discoveredHintsByEventName[eventName].orEmpty().toApiContextResponse(),
                 specStatus = when {
                     spec == null -> LogCatalogSpecStatus.NO_SPEC
                     eventSamples.isEmpty() -> LogCatalogSpecStatus.NO_SAMPLE
@@ -121,6 +122,21 @@ class LogCatalogService(
         val description = apiDescription?.trim()?.takeIf { it.isNotBlank() }
         if (method == null && path == null && description == null) return null
         return LogCatalogApiContextResponse(method, path, description)
+    }
+
+    private fun List<DiscoveredLogEvent>.toApiContextResponse(): LogCatalogApiContextResponse? =
+        firstNotNullOfOrNull { event -> event.specHint.toApiContextResponse() }
+
+    private fun Map<String, Any?>?.toApiContextResponse(): LogCatalogApiContextResponse? {
+        val method = this?.get("apiMethod") as? String
+        val path = this?.get("apiPath") as? String
+        val description = this?.get("apiDescription") as? String
+        if (method.isNullOrBlank() && path.isNullOrBlank() && description.isNullOrBlank()) return null
+        return LogCatalogApiContextResponse(
+            method?.trim()?.takeIf { it.isNotBlank() },
+            path?.trim()?.takeIf { it.isNotBlank() },
+            description?.trim()?.takeIf { it.isNotBlank() }
+        )
     }
 
     private fun fetchDiscoveredHints(agents: List<Agent>): List<DiscoveredLogEvent> {

@@ -40,7 +40,8 @@ class AgentControllerTest {
                 sdkVersion = "0.1.0",
                 javaVersion = "21",
                 hostname = "local",
-                metadata = mapOf("env" to "local")
+                metadata = mapOf("env" to "local"),
+                sourceType = null
             )
         ).willReturn(agent)
         given(logSpecService.findAllByAppName("order-service"))

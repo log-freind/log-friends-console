@@ -2,6 +2,7 @@ package com.logfriends.platform.api.dto
 
 import com.logfriends.platform.domain.agent.entity.Agent
 import com.logfriends.platform.domain.agent.entity.AgentStatus
+import com.logfriends.platform.domain.agent.entity.SourceType
 import com.logfriends.platform.domain.logspec.entity.LogSpecSnapshot
 import jakarta.validation.constraints.NotBlank
 import java.time.Instant
@@ -15,7 +16,8 @@ data class AgentRegisterRequest(
     val sdkVersion: String? = null,
     val javaVersion: String? = null,
     val hostname: String? = null,
-    val metadata: Map<String, Any> = emptyMap()
+    val metadata: Map<String, Any> = emptyMap(),
+    val sourceType: SourceType? = null
 )
 
 data class AgentUpdateRequest(
@@ -23,7 +25,8 @@ data class AgentUpdateRequest(
     val sdkVersion: String? = null,
     val javaVersion: String? = null,
     val hostname: String? = null,
-    val metadata: Map<String, Any>? = null
+    val metadata: Map<String, Any>? = null,
+    val sourceType: SourceType? = null
 )
 
 data class HeartbeatRequest(
@@ -38,6 +41,7 @@ data class AgentResponse(
     val workerId: String,
     val appName: String,
     val status: AgentStatus,
+    val sourceType: SourceType,
     val sdkVersion: String?,
     val javaVersion: String?,
     val hostname: String?,
@@ -52,6 +56,7 @@ data class AgentResponse(
             workerId = agent.workerId,
             appName = agent.appName,
             status = agent.status,
+            sourceType = agent.sourceType,
             sdkVersion = agent.sdkVersion,
             javaVersion = agent.javaVersion,
             hostname = agent.hostname,
@@ -68,6 +73,7 @@ data class AgentRegistrationResponse(
     val workerId: String,
     val appName: String,
     val status: AgentStatus,
+    val sourceType: SourceType,
     val sdkVersion: String?,
     val javaVersion: String?,
     val hostname: String?,
@@ -83,6 +89,7 @@ data class AgentRegistrationResponse(
             workerId = agent.workerId,
             appName = agent.appName,
             status = agent.status,
+            sourceType = agent.sourceType,
             sdkVersion = agent.sdkVersion,
             javaVersion = agent.javaVersion,
             hostname = agent.hostname,
