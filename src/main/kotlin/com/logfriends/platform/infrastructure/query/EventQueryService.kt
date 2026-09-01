@@ -103,6 +103,10 @@ class EventQueryService(
             DSL.field("c.event_id").`as`("eventId"),
             DSL.field("c.session_id").`as`("sessionId"),
             DSL.field("c.app_instance_id").`as`("appInstanceId"),
+            DSL.field("c.page_path").`as`("pagePath"),
+            DSL.field("c.component_name").`as`("componentName"),
+            DSL.field("c.parent_component_name").`as`("parentComponentName"),
+            DSL.field("c.component_path").`as`("componentPath"),
             DSL.field("c.payload").`as`("payload")
         )
             .from(DSL.table("custom_events").`as`("c"))

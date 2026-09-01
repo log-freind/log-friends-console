@@ -32,6 +32,10 @@ class EventQueryServiceTest {
                 DSL.field("eventId", String::class.java),
                 DSL.field("sessionId", String::class.java),
                 DSL.field("appInstanceId", String::class.java),
+                DSL.field("pagePath", String::class.java),
+                DSL.field("componentName", String::class.java),
+                DSL.field("parentComponentName", String::class.java),
+                DSL.field("componentPath", String::class.java),
                 DSL.field("payload", String::class.java)
             )
             val record = dsl.newRecord(*fields.toTypedArray())
@@ -46,7 +50,11 @@ class EventQueryServiceTest {
             record.set(fields[8] as Field<Any>, "evt-uuid-1")
             record.set(fields[9] as Field<Any>, "sess-uuid-1")
             record.set(fields[10] as Field<Any>, "")
-            record.set(fields[11] as Field<Any>, "{\"item\":\"shoe\"}")
+            record.set(fields[11] as Field<Any>, "/products/123")
+            record.set(fields[12] as Field<Any>, "AddToCartButton")
+            record.set(fields[13] as Field<Any>, "ProductDetail")
+            record.set(fields[14] as Field<Any>, "{\"items\":[\"ProductDetail\",\"AddToCartButton\"]}")
+            record.set(fields[15] as Field<Any>, "{\"item\":\"shoe\"}")
 
             val result = dsl.newResult(*fields.toTypedArray())
             result.add(record)
@@ -72,6 +80,8 @@ class EventQueryServiceTest {
         assertThat(rows[0]["sourceType"]).isEqualTo("BROWSER")
         assertThat(rows[0]["sessionId"]).isEqualTo("sess-uuid-1")
         assertThat(rows[0]["eventId"]).isEqualTo("evt-uuid-1")
+        assertThat(rows[0]["pagePath"]).isEqualTo("/products/123")
+        assertThat(rows[0]["componentName"]).isEqualTo("AddToCartButton")
 
         assertThat(executedQueries[0]).contains("custom_events")
         assertThat(executedQueries[0]).contains("session_id")
@@ -93,6 +103,10 @@ class EventQueryServiceTest {
                 DSL.field("eventId", String::class.java),
                 DSL.field("sessionId", String::class.java),
                 DSL.field("appInstanceId", String::class.java),
+                DSL.field("pagePath", String::class.java),
+                DSL.field("componentName", String::class.java),
+                DSL.field("parentComponentName", String::class.java),
+                DSL.field("componentPath", String::class.java),
                 DSL.field("payload", String::class.java)
             )
             val record = dsl.newRecord(*fields.toTypedArray())
@@ -107,7 +121,7 @@ class EventQueryServiceTest {
             record.set(fields[8] as Field<Any>, "evt-5678")
             record.set(fields[9] as Field<Any>, "sess-1234")
             record.set(fields[10] as Field<Any>, "")
-            record.set(fields[11] as Field<Any>, "{\"total\":50000}")
+            record.set(fields[15] as Field<Any>, "{\"total\":50000}")
 
             val result = dsl.newResult(*fields.toTypedArray())
             result.add(record)
@@ -152,6 +166,10 @@ class EventQueryServiceTest {
                 DSL.field("eventId", String::class.java),
                 DSL.field("sessionId", String::class.java),
                 DSL.field("appInstanceId", String::class.java),
+                DSL.field("pagePath", String::class.java),
+                DSL.field("componentName", String::class.java),
+                DSL.field("parentComponentName", String::class.java),
+                DSL.field("componentPath", String::class.java),
                 DSL.field("payload", String::class.java)
             )
             val record = dsl.newRecord(*fields.toTypedArray())

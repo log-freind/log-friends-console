@@ -20,6 +20,7 @@ data class EventPayload(
     val appInstanceId: String? = null,
     val sdkName: String? = null,
     val sdkVersion: String? = null,
+    val uiContext: UiContextPayload? = null,
     // HTTP
     val method: String? = null,
     val uri: String? = null,
@@ -44,4 +45,12 @@ data class EventPayload(
     // LOG_EVENT
     val eventName: String? = null,
     val payload: Map<String, Any>? = null,
+)
+
+/** Browser page and component ancestry; intentionally separate from business payload. */
+data class UiContextPayload(
+    val page: String? = null,
+    val component: String? = null,
+    val parentComponent: String? = null,
+    val componentPath: List<String>? = null,
 )

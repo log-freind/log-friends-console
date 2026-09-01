@@ -200,12 +200,16 @@ class IngestService(
                     DSL.field("worker_id"), DSL.field("ts"),
                     DSL.field("event_name"), DSL.field("payload"),
                     DSL.field("event_id"), DSL.field("session_id"),
-                    DSL.field("app_instance_id"), DSL.field("received_at")
+                    DSL.field("app_instance_id"), DSL.field("received_at"),
+                    DSL.field("page_path"), DSL.field("component_name"),
+                    DSL.field("parent_component_name"), DSL.field("component_path")
                 )
                 .values(
                     workerId, ingestValidator.parseTsOrNull(e.timestamp)!!,
                     e.eventName ?: "unknown", toJsonb(e.payload),
-                    e.eventId, e.sessionId, e.appInstanceId, now
+                    e.eventId, e.sessionId, e.appInstanceId, now,
+                    e.uiContext?.page, e.uiContext?.component, e.uiContext?.parentComponent,
+                    toJsonb(e.uiContext?.componentPath?.let { mapOf("items" to it) })
                 )
                 .onDuplicateKeyIgnore()
         }).execute()
