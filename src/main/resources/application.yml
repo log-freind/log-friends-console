@@ -39,6 +39,10 @@ spring:
     default-property-inclusion: non_null
 
 logfriends:
+  mcp:
+    enabled: ${LOGFRIENDS_MCP_ENABLED:false}
+    allowed-hosts: ${LOGFRIENDS_MCP_ALLOWED_HOSTS:localhost,127.0.0.1,[::1]}
+    allowed-origins: ${LOGFRIENDS_MCP_ALLOWED_ORIGINS:http://localhost:8080}
   web:
     allowed-origins: ${LOGFRIENDS_WEB_ALLOWED_ORIGINS:http://localhost:3000}
   ingest:

@@ -54,6 +54,51 @@ curl http://localhost:8080/actuator/health
 
 Flyway creates and validates the required schema at startup.
 
+## Read-only MCP
+
+Enable the Console's stateless Streamable HTTP endpoint with:
+
+```bash
+LOGFRIENDS_MCP_ENABLED=true ./gradlew bootRun
+```
+
+Connect an MCP client to `http://localhost:8080/mcp`. The server exposes
+`search_log_catalog`, `get_event_samples`, `get_ingest_failure_summary`, and
+`get_worker_status`. No model API key is required by the Console.
+
+```json
+{
+  "mcpServers": {
+    "log-friends": { "type": "http", "url": "http://localhost:8080/mcp" }
+  }
+}
+```
+
+Client configuration syntax varies; use its Streamable HTTP/remote server option.
+MCP is disabled by default. Hostnames are restricted to localhost, 127.0.0.1 and
+IPv6 loopback. For a trusted internal deployment set
+`LOGFRIENDS_MCP_ALLOWED_HOSTS` to a comma-separated hostname list (without ports)
+and `LOGFRIENDS_MCP_ALLOWED_ORIGINS` to exact allowed browser origins (with ports).
+Host/Origin checks do not authenticate callers: keep this endpoint on a trusted
+network until authentication is added.
+
+Samples default to the last 24 hours (maximum 7 days), 5 rows (maximum 20), and
+recursive sensitive-key masking. Other tools default to 20 rows (maximum 50).
+Each structured result is capped at 64 KiB, with `truncated` indicating omitted
+records. The text content contains the same JSON for client compatibility.
+Only two MCP queries run concurrently; excess calls receive a retryable tool error.
+Agent metadata and LogSpec example values are not returned. Masking uses field
+names, so free-text values must still be sanitized by event producers.
+
+The endpoint does not mutate LogSpec, run arbitrary SQL, or control SDKs.
+Catalog/Worker queries reuse existing services and still load their source lists
+before limiting output; large installations require query pagination before heavy
+MCP traffic. Protocol integration tests use mocked domain services, not a live DB:
+
+```bash
+./gradlew test --tests '*ConsoleMcpIntegrationTest'
+```
+
 ## Responsibilities
 
 - **Ingest**: receive SDK JSON batches at `POST /ingest`
