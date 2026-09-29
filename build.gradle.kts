@@ -29,6 +29,9 @@ repositories {
 }
 
 dependencies {
+    // MCP 0.18.x retains Spring 6 / Jackson 2 compatibility with Boot 3.5.
+    implementation("io.modelcontextprotocol.sdk:mcp-spring-webmvc:0.18.1")
+    implementation("io.modelcontextprotocol.sdk:mcp:0.18.1")
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
